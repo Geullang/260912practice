@@ -915,6 +915,60 @@ div[data-testid="stButton"]:has(button[kind="secondary"]) {
     }
 }
 
+
+/* ===== v51: otter removed; keep only the gift button ===== */
+.st-key-gift_shell_v50 {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    margin-top: 18px !important;
+    margin-bottom: 18px !important;
+    position: relative !important;
+    z-index: 12 !important;
+}
+
+.st-key-gift_shell_v50 div[data-testid="stButton"] {
+    width: auto !important;
+}
+
+.st-key-gift_shell_v50 button {
+    width: auto !important;
+    min-width: 210px !important;
+    height: auto !important;
+    min-height: 48px !important;
+    padding: 0.72rem 1.45rem !important;
+    border-radius: 999px !important;
+    border: 1.4px solid #d7bd70 !important;
+    background: linear-gradient(180deg, #c7e9cf 0%, #afdcb9 100%) !important;
+    box-shadow: 0 6px 16px rgba(77,130,90,0.15) !important;
+    color: #b78c2f !important;
+    font-family: 'Jua', 'Gowun Dodum', sans-serif !important;
+    font-size: 1.06rem !important;
+    font-weight: 400 !important;
+    letter-spacing: 0.01em !important;
+}
+
+.st-key-gift_shell_v50 button p {
+    color: #b78c2f !important;
+    font-size: 1.06rem !important;
+    font-family: 'Jua', 'Gowun Dodum', sans-serif !important;
+}
+
+.st-key-gift_shell_v50 button:hover,
+.st-key-gift_shell_v50 button:focus {
+    transform: none !important;
+    background: linear-gradient(180deg, #d0eed6 0%, #b8e1c1 100%) !important;
+    border-color: #dec47e !important;
+    box-shadow: 0 6px 16px rgba(77,130,90,0.17) !important;
+}
+
+/* No otter or image remnant should appear. */
+.otter-static,
+.otter-static-exact,
+.st-key-gift_shell_v50 img {
+    display: none !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -2226,7 +2280,7 @@ else:
     # 수달은 클릭 전/후 항상 같은 자리, 같은 요소로 렌더링한다.
     with st.container(key="gift_shell_v50"):
         gift_clicked = st.button(
-            "하나 더 선물",
+            "하나 더 선물할게",
             key="gift_shell_v50_button",
             help="문장 하나를 더 볼 수 있어.",
         )
