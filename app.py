@@ -10,174 +10,247 @@ st.set_page_config(
 
 st.markdown("""
 <style>
+
 @import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Sunflower:wght@300&display=swap');
 
 html, body, [class*="css"], .stApp {
     font-family: 'Gowun Dodum', 'Malgun Gothic', sans-serif;
 }
 
-.block-container {
-    max-width: 760px;
-    padding-top: 2rem;
-    padding-bottom: 3rem;
+.stApp {
+    background:
+        radial-gradient(circle at 10% 8%, rgba(255, 250, 206, 0.58) 0, rgba(255, 250, 206, 0) 17%),
+        radial-gradient(circle at 86% 12%, rgba(205, 241, 222, 0.72) 0, rgba(205, 241, 222, 0) 22%),
+        radial-gradient(circle at 76% 82%, rgba(196, 229, 255, 0.70) 0, rgba(196, 229, 255, 0) 28%),
+        linear-gradient(145deg, #eafaf3 0%, #e6f7f5 42%, #e8f4ff 100%);
 }
 
+.block-container {
+    max-width: 790px;
+    padding-top: 2rem;
+    padding-bottom: 3.4rem;
+}
 
+h1 {
+    color: #173f5f !important;
+    letter-spacing: -0.025em;
+    font-weight: 800 !important;
+}
 
+p, label, div {
+    color: #24445d;
+}
+
+/* Input fields */
+div[data-testid="stTextInput"] input,
+div[data-testid="stTextArea"] textarea {
+    font-family: 'Gowun Dodum', 'Malgun Gothic', sans-serif;
+    border-radius: 15px;
+    border: 1px solid rgba(83, 136, 151, 0.24);
+    background: rgba(255,255,255,0.78);
+    box-shadow: 0 3px 12px rgba(58, 102, 116, 0.04);
+}
+
+div[data-testid="stTextInput"] input:focus,
+div[data-testid="stTextArea"] textarea:focus {
+    border-color: rgba(65, 140, 153, 0.55);
+    box-shadow: 0 0 0 0.15rem rgba(91, 179, 184, 0.10);
+}
+
+/* Main primary form button */
+div[data-testid="stForm"] button[kind="primary"] {
+    background: linear-gradient(135deg, #5ea89e 0%, #5689ad 100%);
+    color: white;
+    border: none;
+    border-radius: 15px;
+    min-height: 2.85rem;
+    font-weight: 700;
+    box-shadow: 0 5px 14px rgba(62, 115, 133, 0.16);
+}
+
+/* Letter paper */
 .result-box {
     position: relative;
-    padding: 1.7rem 1.6rem 1.5rem 1.6rem;
-    border-radius: 18px;
-    margin-top: 1.1rem;
+    padding: 2.05rem 2rem 1.95rem 3.55rem;
+    border-radius: 22px;
+    margin-top: 1.15rem;
     background:
-        linear-gradient(180deg, rgba(255,252,246,0.995), rgba(254,250,242,0.995)),
+        radial-gradient(circle at 17px 24px, rgba(210,202,186,0.72) 0 8px, transparent 8.5px) 0 0 / 100% 46px repeat-y,
         repeating-linear-gradient(
-            180deg,
+            to bottom,
             rgba(0,0,0,0) 0px,
-            rgba(0,0,0,0) 30px,
-            rgba(165, 177, 198, 0.23) 30px,
-            rgba(165, 177, 198, 0.23) 31px
-        );
-    border: 1px solid rgba(207, 194, 176, 0.65);
-    box-shadow: 0 6px 22px rgba(50, 40, 30, 0.06);
+            rgba(0,0,0,0) 40px,
+            rgba(138, 159, 173, 0.20) 40px,
+            rgba(138, 159, 173, 0.20) 41px
+        ),
+        linear-gradient(180deg, rgba(255,252,244,0.98), rgba(254,249,238,0.98));
+    border: 1px solid rgba(206, 195, 177, 0.66);
+    box-shadow: 0 12px 34px rgba(61, 88, 93, 0.09);
     overflow: hidden;
 }
-.result-box::before {
+
+.result-box::after {
     content: "";
     position: absolute;
-    left: 18px;
-    top: 14px;
-    bottom: 14px;
-    width: 2px;
-    background: rgba(211, 118, 118, 0.22);
-    border-radius: 3px;
+    right: 24px;
+    bottom: 20px;
+    width: 75px;
+    height: 75px;
+    opacity: 0.30;
+    background:
+        radial-gradient(ellipse at 20% 75%, rgba(79,151,102,.68) 0 11%, transparent 12%),
+        radial-gradient(ellipse at 47% 48%, rgba(93,166,113,.68) 0 12%, transparent 13%),
+        radial-gradient(ellipse at 70% 70%, rgba(108,177,124,.64) 0 10%, transparent 11%),
+        linear-gradient(66deg, transparent 47%, rgba(81,139,93,.62) 48% 51%, transparent 52%);
+    transform: rotate(-10deg);
+    pointer-events: none;
 }
+
 .letter-body {
-    padding-left: 0.95rem;
-    padding-right: 0.35rem;
+    position: relative;
+    z-index: 2;
     font-family: 'Sunflower', 'Gowun Dodum', sans-serif;
-    font-size: 1.2rem;
-    line-height: 1.9;
-    color: #4a4038;
+    font-size: 1.17rem;
+    line-height: 1.75;
+    color: #404a4d;
     letter-spacing: 0.005em;
     word-break: keep-all;
 }
+
 .letter-greeting {
     display: block;
-    margin-bottom: 0.42rem;
-}
-.letter-message {
-    display: block;
-}
-.letter-body strong {
+    margin-bottom: 0.65rem;
     font-weight: 700;
+    color: #31464f;
 }
 
+.letter-sentence {
+    display: block;
+    margin-bottom: 0.48rem;
+}
+
+.letter-sentence:last-child {
+    margin-bottom: 0;
+}
+
+/* Quote cards */
 .quote-card {
     position: relative;
-    padding: 1.8rem 1.9rem 1.75rem 1.9rem;
-    margin-top: 1.5rem;
-    box-shadow: 0 6px 24px rgba(40, 40, 40, 0.07);
-    border: 1px solid rgba(204, 189, 172, 0.54);
+    padding: 1.85rem 2rem 1.8rem 2rem;
+    margin-top: 1.35rem;
+    border-radius: 24px;
     overflow: hidden;
-    clip-path: polygon(
-        12px 0%, calc(100% - 12px) 0%,
-        100% 12px, 100% calc(100% - 12px),
-        calc(100% - 12px) 100%, 12px 100%,
-        0% calc(100% - 12px), 0% 12px
-    );
+    border: 1px solid rgba(255,255,255,0.72);
+    box-shadow:
+        0 12px 30px rgba(58, 101, 119, 0.10),
+        inset 0 0 0 1px rgba(255,255,255,0.25);
 }
+
 .quote-card::before {
     content: "";
     position: absolute;
-    inset: 7px;
-    clip-path: polygon(
-        10px 0%, calc(100% - 10px) 0%,
-        100% 10px, 100% calc(100% - 10px),
-        calc(100% - 10px) 100%, 10px 100%,
-        0% calc(100% - 10px), 0% 10px
-    );
-    border: 1px solid rgba(255,255,255,0.45);
+    inset: 0;
+    background:
+        radial-gradient(circle at 86% 24%, rgba(255,255,255,0.32) 0, rgba(255,255,255,0) 24%),
+        radial-gradient(circle at 18% 88%, rgba(233,255,221,0.28) 0, rgba(233,255,221,0) 28%);
     pointer-events: none;
-}
-.quote-inner {
-    position: relative;
-    z-index: 2;
-    margin-top: 0;
 }
 
 .pastel-warm {
-    background: linear-gradient(135deg, #e7fbf4 0%, #dff5ff 52%, #ecf8ff 100%);
+    background: linear-gradient(135deg, #ccefdc 0%, #cdeee8 46%, #bfe0ef 100%);
 }
 .pastel-calm {
-    background: linear-gradient(135deg, #dff3f7 0%, #dcefff 52%, #e5f8ef 100%);
+    background: linear-gradient(135deg, #cfe9e4 0%, #c4e3ed 52%, #c5dcf3 100%);
 }
 .pastel-soft {
-    background: linear-gradient(135deg, #e6f5ff 0%, #e8fbf8 52%, #edf4ff 100%);
+    background: linear-gradient(135deg, #d4ece8 0%, #cae7ef 50%, #cbdff2 100%);
 }
 .pastel-fresh {
-    background: linear-gradient(135deg, #dcf8ef 0%, #def2ff 52%, #e9fbf5 100%);
+    background: linear-gradient(135deg, #c7eedc 0%, #c8e9ea 48%, #bddff0 100%);
+}
+
+.quote-inner {
+    position: relative;
+    z-index: 2;
 }
 
 .quote-title {
-    font-size: 1.02rem;
-    font-weight: 700;
-    margin-bottom: 1.15rem;
-    color: #5a4a3f;
-}
-.quote-text {
-    font-size: 1.44rem;
-    line-height: 1.82;
-    font-weight: 700;
+    font-size: 1.03rem;
+    font-weight: 800;
     margin-bottom: 1rem;
-    color: #43362d;
-}
-.quote-meta {
-    font-size: 0.95rem;
-    opacity: 0.82;
-    color: #5c5148;
+    color: #184565;
 }
 
-.clarify-note {
-    margin-top: -0.25rem;
-    margin-bottom: 0.45rem;
-    color: #d96b6b;
-    font-size: 0.98rem;
+.quote-title::before {
+    content: "❧";
+    margin-right: 0.45rem;
+    color: #4a9e7a;
+    font-size: 1.08rem;
+}
+
+.quote-text {
+    font-size: 1.42rem;
+    line-height: 1.75;
     font-weight: 700;
-    line-height: 1.6;
-}
-.clarify-sub {
-    color: #9a6a6a;
-    font-size: 0.88rem;
-    margin-bottom: 0.35rem;
+    margin-bottom: 0.9rem;
+    color: #173f5f;
+    word-break: keep-all;
 }
 
-.small-note {
-    font-size: 0.88rem;
-    opacity: 0.68;
-    margin-top: 1rem;
+.quote-meta {
+    font-size: 0.96rem;
+    opacity: 0.88;
+    color: #34536a;
 }
 
+/* Cute second-gift button */
 div[data-testid="stButton"] button[kind="primary"] {
-    background: linear-gradient(135deg, #4f9188 0%, #4e7fa5 100%);
+    background: linear-gradient(135deg, #18a9a3 0%, #208ccc 100%);
     color: white;
     border: none;
     border-radius: 999px;
-    min-height: 2.55rem;
-    padding: 0.45rem 0.95rem;
-    font-weight: 700;
-    box-shadow: 0 4px 12px rgba(55, 103, 120, 0.20);
+    min-height: 2.42rem;
+    padding: 0.4rem 0.88rem;
+    font-weight: 800;
+    font-size: 0.94rem;
+    box-shadow: 0 6px 16px rgba(32, 132, 163, 0.24);
 }
+
 div[data-testid="stButton"] button[kind="primary"]:hover {
     filter: brightness(0.96);
     transform: translateY(-1px);
 }
 
-div[data-testid="stTextInput"] input,
-div[data-testid="stTextArea"] textarea {
-    font-family: 'Gowun Dodum', 'Malgun Gothic', sans-serif;
-    border-radius: 16px;
+/* Secondary/reset button */
+div[data-testid="stButton"] button[kind="secondary"] {
+    border-radius: 14px;
+    border: 1px solid rgba(72, 127, 143, 0.25);
+    background: rgba(255,255,255,0.68);
+    color: #31546c;
 }
+
+.clarify-note {
+    margin-top: -0.15rem;
+    margin-bottom: 0.35rem;
+    color: #c55f68;
+    font-size: 0.97rem;
+    font-weight: 700;
+    line-height: 1.55;
+}
+
+.clarify-sub {
+    color: #8b7075;
+    font-size: 0.86rem;
+    margin-bottom: 0.3rem;
+}
+
+.small-note {
+    font-size: 0.86rem;
+    opacity: 0.62;
+    margin-top: 1rem;
+    color: #557080;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -823,7 +896,13 @@ def natural_reason_clause(reason: str) -> str:
     if r.endswith("였어"):
         return r[:-2] + "여서"
 
-    achievement_words = ["성공했어", "성공했다", "해냈어", "해냈다", "완성했어", "완성했다"]
+    achievement_words = [
+        "성공했어", "성공했다",
+        "해냈어", "해냈다",
+        "완성했어", "완성했다",
+        "끝냈어", "끝냈다",
+        "마쳤어", "마쳤다",
+    ]
     if any(r.endswith(x) for x in achievement_words):
         if r.endswith("성공했어") or r.endswith("성공했다"):
             return r[:-4] + "성공했기 때문에"
@@ -831,6 +910,10 @@ def natural_reason_clause(reason: str) -> str:
             return r[:-3] + "해냈기 때문에"
         if r.endswith("완성했어") or r.endswith("완성했다"):
             return r[:-4] + "완성했기 때문에"
+        if r.endswith("끝냈어") or r.endswith("끝냈다"):
+            return r[:-3] + "끝냈기 때문에"
+        if r.endswith("마쳤어") or r.endswith("마쳤다"):
+            return r[:-3] + "마쳤기 때문에"
 
     if r.endswith("했거든"):
         return r[:-4] + "했기 때문에"
@@ -1019,6 +1102,12 @@ def emotion_phrase_for_result(emotion_label: str, raw_emotion: str = "") -> str:
         "기대": "기대되는구나", "감사": "고맙구나",
     }
     return single_map.get(single, label_map.get(emotion_label, "그런 마음이 드는구나"))
+
+def split_sentences_for_letter(text: str):
+    """마침표/물음표/느낌표 단위로 편지 문장을 줄바꿈하기 위한 보조 함수."""
+    chunks = re.findall(r"[^.!?]+[.!?]?", text.strip())
+    return [c.strip() for c in chunks if c.strip()]
+
 
 def pastel_class(emotion: str):
     if emotion in ["행복·즐거움", "감사·감동", "기대·설렘", "만족·자신감"]:
@@ -1283,12 +1372,15 @@ else:
         result["emotion"], result.get("clarified_emotion", "")
     ).rstrip(".!? ")
 
-    result_sentence = (
-        f"{natural_reason_clause(result['reason'])} "
-        f"{emotion_sentence}. "
-        f"{comfort} "
-        f"네가 바라는 것이 이루어지기를 바라. "
-        f"그래서 오늘은 {reason_for_quote} 이 문장을 골랐어."
+    first_line = f"{natural_reason_clause(result['reason'])} {emotion_sentence}."
+    letter_lines = [first_line]
+    letter_lines.extend(split_sentences_for_letter(comfort))
+    letter_lines.append("네가 바라는 것이 이루어지기를 바라.")
+    letter_lines.append(f"그래서 오늘은 {reason_for_quote} 이 문장을 골랐어.")
+
+    result_sentence = "".join(
+        f'<div class="letter-sentence">{line}</div>'
+        for line in letter_lines
     )
 
     st.markdown(
@@ -1296,7 +1388,7 @@ else:
         <div class="result-box">
             <div class="letter-body">
                 <span class="letter-greeting">{call_name}.</span>
-                <div class="letter-message">{result_sentence}</div>
+                {result_sentence}
             </div>
         </div>
         """,
@@ -1317,9 +1409,11 @@ else:
     )
 
     if "second_quote_idx" not in st.session_state:
-        left, center, right = st.columns([1.35, 1.3, 1.35])
-        with center:
-            if st.button("하나 더 선물할게", type="primary", use_container_width=True):
+        spacer_l, animal_col, button_col, spacer_r = st.columns([1.45, 0.42, 1.45, 1.18])
+        with animal_col:
+            st.image("assets/otter_gift.png", width=58)
+        with button_col:
+            if st.button("하나 더 선물할게  ›", type="primary", use_container_width=True):
                 st.session_state.second_quote_idx = choose_second_quote(
                     result["analysis_mood"],
                     result["reason"],
