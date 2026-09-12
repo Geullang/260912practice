@@ -1630,6 +1630,65 @@ def quote_score(quote, emotion, context, wish):
         score += calm_priority.get(quote["text"], 0)
         score += calm_demote.get(quote["text"], 0)
 
+    # 비교/학습 맥락은 속도 경쟁보다 배움·자기속도에 가까운 문장을 우선
+    if context == "비교압박":
+        compare_priority = {
+            "우리는 해보면서 배운다.": 24,
+            "절뚝이며 가더라도 뒤로 가는 것은 아니다.": 20,
+            "서두를 필요도, 빛나 보일 필요도, 자기 아닌 다른 사람이 될 필요도 없다.": 18,
+            "나는 지금의 나로 존재한다. 그것으로 충분하다.": 14,
+        }
+        score += compare_priority.get(quote["text"], 0)
+
+    # 불확실한 결과를 기다리는 불안에는 통제/상상에 관한 문장을 우선
+    if emotion == "불안·걱정":
+        anxiety_priority = {
+            "우리는 현실보다 상상 속에서 더 자주 괴로워한다.": 20,
+            "어떤 것은 우리에게 달려 있고, 어떤 것은 그렇지 않다.": 18,
+        }
+        score += anxiety_priority.get(quote["text"], 0)
+
+    # 주요 상황별 의미 적합도 보강
+    if context == "학업압박":
+        academic_priority = {
+            "우리는 해보면서 배운다.": 18,
+            "자신이 모른다는 것을 분명히 아는 것이 모든 진정한 과학적 진보의 출발이다.": 14,
+            "나는 모르는 것을 안다고 생각하지 않는다.": 10,
+        }
+        score += academic_priority.get(quote["text"], 0)
+
+    if context == "새로운도전":
+        challenge_priority = {
+            "우리는 해보면서 배운다.": 20,
+            "진짜 용기는 두렵지 않은 것이 아니라, 두려운 채로 위험에 맞서는 것이다.": 16,
+            "나는 폭풍이 두렵지 않다. 내 배를 다루는 법을 배우고 있으니까.": 14,
+        }
+        score += challenge_priority.get(quote["text"], 0)
+
+    if context == "실수실패":
+        retry_priority = {
+            "절뚝이며 가더라도 뒤로 가는 것은 아니다.": 18,
+            "한 문이 닫히면 다른 문이 열린다.": 14,
+            "어제로 돌아가도 소용없어. 나는 이미 그때와 다른 사람이니까.": 12,
+        }
+        score += retry_priority.get(quote["text"], 0)
+
+    if context == "하루성과없음":
+        day_priority = {
+            "제비 한 마리가 여름을 만들지 않듯, 하루가 한 사람의 삶 전체를 결정하지 않는다.": 22,
+            "태양은 날마다 새롭다.": 14,
+            "영원은 수많은 ‘지금’으로 이루어진다.": 10,
+        }
+        score += day_priority.get(quote["text"], 0)
+
+    if context == "관계갈등":
+        relation_priority = {
+            "사람은 자기 쪽 이야기만 아는 사람은 그것조차 충분히 알지 못한다.": 0,
+            "사람의 행동을 비웃거나 미워하기보다 이해하려고 했다.": 14,
+            "사람의 말 속에 완전한 진실이 그대로 담기는 경우는 아주 드물다.": 10,
+        }
+        score += relation_priority.get(quote["text"], 0)
+
     return score
 
 def choose_quote(mood_text: str, reason_text: str, wish_text: str):
@@ -2087,6 +2146,497 @@ def emotion_phrase_for_result(emotion_label: str, raw_emotion: str = "") -> str:
 
 
 
+
+def detect_support_situation(reason: str, emotion: str, context: str | None) -> str:
+    t = normalize(reason)
+
+    def has_any(words):
+        return any(w in t for w in words)
+
+    learning_words = ["배우", "학습", "공부", "코딩", "수업", "문제 풀", "연습", "이해가 느", "진도가 느"]
+    compare_words = ["남들보다", "다른 사람", "친구들보다", "속도가 느", "느린 것", "뒤처", "뒤쳐", "비교", "나만 못", "쟤보다", "남보다"]
+    revision_words = ["수정", "고치", "고쳐", "다시 만들", "반복", "번 넘", "몇 번", "재작업", "다시 해"]
+    uncertainty_words = ["될까", "할 수 있을까", "잘될", "잘 될", "완성할 수 있을까", "어떻게 될", "결과가", "가능할까", "될지 모르", "확신이 없"]
+    exam_words = ["시험", "성적", "등수", "점수", "수능", "모의고사", "평가", "채점"]
+    presentation_words = ["발표", "면접", "말해야", "사람들 앞", "앞에서 말", "발표해야", "면접을"]
+    career_words = ["진로", "대학", "학과", "전공", "지원할", "선택해야", "결정해야", "앞으로 뭘", "무슨 일을"]
+    waiting_words = ["기다리", "답장", "연락을 기다", "결과 발표", "발표를 기다", "소식", "회신"]
+    challenge_words = ["처음 해", "처음이라", "익숙하지", "새로운 걸", "처음 배우", "처음 해보", "도전", "낯설"]
+    family_words = ["엄마", "아빠", "부모", "가족", "형", "누나", "언니", "오빠", "동생"]
+    relationship_words = ["친구", "사람", "선생님", "동료", "관계", "연락", "약속"]
+    guilt_words = ["미안", "잘못", "죄책감", "후회", "괜히 그랬", "상처 줬"]
+    unfair_words = ["억울", "불공평", "오해받", "내 탓이 아닌", "왜 나만"]
+    confusion_words = ["뭘 해야", "어떻게 해야", "모르겠", "생각이 복잡", "헷갈", "정리가 안", "혼란"]
+    boredom_words = ["지루", "매일 똑같", "똑같은 하루", "재미없", "권태", "아무것도 하기 싫"]
+    loss_words = ["헤어", "잃었", "떠났", "이별", "사라졌", "상실", "죽", "그리워"]
+
+    if has_any(learning_words) and has_any(compare_words):
+        return "학습속도비교"
+
+    if has_any(compare_words):
+        return "일반비교"
+
+    if has_any(revision_words) and has_any(uncertainty_words):
+        return "반복수정불안"
+
+    if has_any(exam_words):
+        return "시험성적"
+
+    if has_any(presentation_words):
+        return "발표면접"
+
+    if has_any(career_words) and has_any(uncertainty_words + ["고민", "선택", "결정"]):
+        return "진로선택"
+
+    if has_any(waiting_words):
+        return "기다림"
+
+    if has_any(challenge_words):
+        return "새로운도전"
+
+    if has_any(uncertainty_words):
+        return "결과불확실"
+
+    if context == "과제과다":
+        return "할일과다"
+    if context == "하루성과없음":
+        return "성과없음"
+    if context == "실수실패":
+        return "실수실패"
+    if context == "관계갈등":
+        if has_any(family_words):
+            return "가족갈등"
+        return "관계갈등"
+    if context == "관계긍정":
+        return "관계긍정"
+    if context == "외로움상황":
+        return "외로움"
+    if context == "신체불편":
+        return "신체불편"
+    if context == "수면부족":
+        return "수면부족"
+    if context == "혼자휴식":
+        return "혼자휴식"
+    if context == "성취":
+        return "성취"
+    if context == "안도·무사함":
+        return "안도"
+    if context == "기대상황":
+        return "기대"
+
+    if has_any(guilt_words) or emotion in {"부끄러움·죄책감", "후회·아쉬움"}:
+        return "죄책감후회"
+    if has_any(unfair_words) or emotion == "억울·모욕":
+        return "억울함"
+    if has_any(confusion_words) or emotion == "당황·혼란":
+        return "혼란"
+    if has_any(boredom_words) or emotion == "무기력·권태":
+        return "권태"
+    if has_any(loss_words) and emotion == "슬픔·상실":
+        return "상실"
+
+    if emotion == "평온·편안":
+        return "평온"
+    if emotion == "행복·즐거움":
+        return "행복"
+    if emotion == "감사·감동":
+        return "감사"
+    if emotion == "기대·설렘":
+        return "기대"
+    if emotion == "만족·자신감":
+        return "자신감"
+    if emotion == "불안·걱정":
+        return "불안"
+    if emotion == "답답·막막":
+        return "답답"
+    if emotion == "피로·버거움":
+        return "피로"
+    if emotion == "외로움·고독":
+        return "외로움"
+    if emotion == "슬픔·상실":
+        return "슬픔"
+
+    return "일반"
+
+
+def build_natural_opening(reason: str, emotion: str, context: str | None) -> str:
+    """상황이 확실할 때만 자연스러운 문장틀을 사용한다."""
+    situation = detect_support_situation(reason, emotion, context)
+    emotion_sentence = emotion_phrase_for_result(emotion).rstrip(".!? ")
+    t = normalize(reason)
+
+    if situation == "학습속도비교":
+        if "코딩" in t:
+            return f"너는 오늘 코딩을 배우면서 남들보다 배우는 속도가 느린 것 같아 {emotion_sentence}."
+        return f"너는 배우는 과정에서 다른 사람보다 속도가 느린 것 같아 {emotion_sentence}."
+
+    if situation == "일반비교":
+        return f"다른 사람과 비교하다 보니 내 모습이 더 작게 느껴져 {emotion_sentence}."
+
+    if situation == "반복수정불안":
+        count_match = re.search(r"(\d+)\s*번", t)
+        count_phrase = f"{count_match.group(1)}번 넘게 " if count_match else "여러 번 "
+        if "앱" in t:
+            return f"앱을 {count_phrase}수정하고 있는데 이번에는 잘 마무리할 수 있을까 싶어 {emotion_sentence}."
+        return f"같은 작업을 {count_phrase}고치고 있는데 이번에는 잘 마무리할 수 있을까 싶어 {emotion_sentence}."
+
+    if situation == "시험성적":
+        return f"시험이나 성적을 생각하니 {emotion_sentence}."
+
+    if situation == "발표면접":
+        return f"사람들 앞에 나서야 하는 일을 앞두고 {emotion_sentence}."
+
+    if situation == "진로선택":
+        return f"앞으로의 선택을 생각하다 보니 {emotion_sentence}."
+
+    if situation == "기다림":
+        return f"기다리고 있는 일이 있어서 {emotion_sentence}."
+
+    if situation == "새로운도전":
+        return f"익숙하지 않은 일을 시작하려니 {emotion_sentence}."
+
+    if situation == "결과불확실":
+        if "완성할 수 있을까" in t:
+            return f"이번에는 완성할 수 있을까 싶어 {emotion_sentence}."
+        if "잘될" in t or "잘 될" in t:
+            return f"이번에는 잘될지 걱정돼서 {emotion_sentence}."
+        return emotion_sentence + "."
+
+    if situation == "할일과다":
+        return f"해야 할 일이 한꺼번에 겹쳐서 {emotion_sentence}."
+
+    if situation == "성과없음":
+        return f"오늘 해낸 일이 별로 없는 것 같아 {emotion_sentence}."
+
+    if situation == "실수실패":
+        return f"생각한 대로 되지 않은 일이 있어서 {emotion_sentence}."
+
+    if situation in {"관계갈등", "가족갈등"}:
+        return f"가까운 사람과의 일로 {emotion_sentence}."
+
+    if situation == "관계긍정":
+        return emotion_sentence + "."
+
+    if situation == "외로움":
+        return emotion_sentence + "."
+
+    if situation == "신체불편":
+        return f"몸이 편하지 않아서 {emotion_sentence}."
+
+    if situation == "수면부족":
+        return f"충분히 쉬지 못해서 {emotion_sentence}."
+
+    if situation == "성취":
+        return f"해내고 싶었던 일을 끝내서 {emotion_sentence}."
+
+    if situation == "죄책감후회":
+        return f"마음에 걸리는 일이 있어서 {emotion_sentence}."
+
+    if situation == "억울함":
+        return f"납득하기 어려운 일을 겪어서 {emotion_sentence}."
+
+    if situation == "혼란":
+        return f"생각이 여러 갈래로 얽혀 있어서 {emotion_sentence}."
+
+    if situation == "권태":
+        return emotion_sentence + "."
+
+    if situation == "상실":
+        return emotion_sentence + "."
+
+    if situation in {"평온", "혼자휴식", "안도"}:
+        return "오늘은 마음이 한결 편안하고 잔잔하구나."
+
+    if situation in {"행복", "기대", "감사", "자신감"}:
+        return emotion_sentence + "."
+
+    # 확신이 없으면 사용자가 쓰지 않은 상황을 만들어내지 않는다.
+    return emotion_sentence + "."
+
+
+def get_natural_support_copy(emotion: str, context: str | None, situation: str) -> str:
+    """상황×감정별 자연스러운 위로. 길이는 1~2문장으로 제한한다."""
+    situation_copy = {
+        "학습속도비교": (
+            "다른 사람의 속도가 눈에 들어오면 내 속도가 더 느리게 느껴질 수 있어. "
+            "하지만 배우는 속도가 다르다고 해서 배움의 가치까지 달라지는 건 아니야."
+        ),
+        "일반비교": (
+            "비교할수록 다른 사람의 장점은 크게 보이고 내 부족한 점은 더 선명해질 수 있어. "
+            "하지만 다른 사람의 속도가 네 기준이 될 필요는 없어."
+        ),
+        "반복수정불안": (
+            "같은 일을 여러 번 고치다 보면 이번에도 잘될지 걱정이 커질 수 있어. "
+            "하지만 지금은 결과를 미리 단정하기보다 이번 수정에서 달라진 한 가지를 확인해도 괜찮아."
+        ),
+        "시험성적": (
+            "시험이나 성적은 결과가 분명해서 마음을 더 조급하게 만들 수 있어. "
+            "하지만 한 번의 점수가 네가 배운 것 전체를 말해 주는 건 아니야."
+        ),
+        "발표면접": (
+            "사람들 앞에 서는 일은 준비를 많이 해도 긴장될 수 있어. "
+            "하지만 긴장된다고 해서 준비한 것이 사라지는 건 아니야."
+        ),
+        "진로선택": (
+            "앞으로의 일을 정해야 할 때는 하나의 선택이 너무 크게 느껴질 수 있어. "
+            "하지만 지금의 선택이 앞으로의 모든 가능성을 한 번에 닫는 것은 아니야."
+        ),
+        "기다림": (
+            "기다리는 동안에는 아직 오지 않은 답을 계속 상상하게 될 수 있어. "
+            "하지만 기다림 자체가 나쁜 결과를 뜻하는 건 아니야."
+        ),
+        "새로운도전": (
+            "처음 하는 일은 익숙하지 않아서 더 어렵게 느껴질 수 있어. "
+            "하지만 낯설다는 건 아직 배우는 중이라는 뜻이기도 해."
+        ),
+        "결과불확실": (
+            "결과가 아직 정해지지 않았을 때는 마음이 자꾸 앞서 갈 수 있어. "
+            "하지만 지금 당장 모든 답을 정하지 않아도 괜찮아."
+        ),
+        "할일과다": (
+            "해야 할 일이 한꺼번에 겹치면 마음이 먼저 지칠 수 있어. "
+            "하지만 모든 일을 한 번에 끝내지 않아도 괜찮아."
+        ),
+        "성과없음": (
+            "한 일이 별로 없다고 느끼는 날은 하루 전체가 아쉽게 보일 수 있어. "
+            "하지만 오늘이 마음에 들지 않는다고 해서 내일까지 같은 하루가 되는 건 아니야."
+        ),
+        "실수실패": (
+            "생각한 대로 되지 않으면 마음이 쉽게 작아질 수 있어. "
+            "하지만 한 번의 결과가 네가 해 온 과정 전체를 결정하지는 않아."
+        ),
+        "관계갈등": (
+            "가까운 사람과의 일일수록 감정이 더 크게 흔들릴 수 있어. "
+            "지금 당장 이해하거나 정리하려고 서두르지 않아도 괜찮아."
+        ),
+        "가족갈등": (
+            "가족과의 일은 쉽게 거리를 두기 어려워서 마음이 더 오래 남을 수 있어. "
+            "지금 당장 결론을 내리기보다 네가 어떤 점에서 힘들었는지 먼저 살펴도 괜찮아."
+        ),
+        "관계긍정": (
+            "좋은 사람과 함께한 시간이 마음을 편하게 해 주는 날도 있어. "
+            "그 기분을 굳이 분석하지 않고 그대로 누려도 좋아."
+        ),
+        "외로움": (
+            "외로운 마음은 주변에 사람이 있는지와 꼭 같은 문제는 아니야. "
+            "마음이 누군가에게 닿고 싶다는 신호일 수도 있어."
+        ),
+        "신체불편": (
+            "몸이 편하지 않으면 마음까지 가라앉기 쉬워. "
+            "지금은 평소처럼 해내려 하기보다 몸이 보내는 신호를 먼저 살펴도 괜찮아."
+        ),
+        "수면부족": (
+            "잠이 부족한 날에는 평소보다 모든 일이 더 버겁게 느껴질 수 있어. "
+            "오늘은 속도를 조금 늦춰도 괜찮아."
+        ),
+        "성취": (
+            "해내고 싶었던 일을 끝낸 기쁨은 충분히 누려도 좋아. "
+            "결과뿐 아니라 그 과정에서 네가 들인 시간도 함께 기억해 두면 좋겠다."
+        ),
+        "죄책감후회": (
+            "마음에 걸리는 일이 있으면 지나간 장면을 자꾸 되짚게 될 수 있어. "
+            "하지만 후회는 다음 선택을 조금 다르게 만드는 데 쓸 수도 있어."
+        ),
+        "억울함": (
+            "억울한 마음은 설명해도 제대로 전달되지 않을 것 같을 때 더 커질 수 있어. "
+            "지금은 네가 왜 힘들었는지를 스스로 분명히 아는 것부터 해도 괜찮아."
+        ),
+        "혼란": (
+            "생각이 한꺼번에 많아지면 무엇부터 정리해야 할지 더 막막해질 수 있어. "
+            "지금은 답 하나를 고르기보다 생각을 하나씩 나눠 보는 것만으로도 충분해."
+        ),
+        "권태": (
+            "비슷한 하루가 이어지면 특별한 이유가 없어도 마음이 처질 수 있어. "
+            "크게 바꾸려 하기보다 작은 변화 하나를 만들어 봐도 괜찮아."
+        ),
+        "상실": (
+            "마음이 많이 슬픈 날에는 빨리 괜찮아지려고 애쓰지 않아도 돼. "
+            "지금의 마음이 머물 자리를 잠시 내어 줘도 괜찮아."
+        ),
+        "평온": (
+            "마음이 잔잔한 순간은 생각보다 귀해. "
+            "무엇을 더 채우기보다 지금의 편안함을 그대로 느껴도 좋아."
+        ),
+        "혼자휴식": (
+            "혼자 있는 시간이 꼭 외로운 시간인 것은 아니야. "
+            "누구의 속도에도 맞출 필요 없이 네가 편한 방식으로 쉬어도 좋아."
+        ),
+        "안도": (
+            "큰일 없이 하루를 지나온 것만으로 마음이 놓이는 날도 있어. "
+            "지금의 편안함을 굳이 다른 감정으로 바꾸지 않아도 좋아."
+        ),
+        "행복": (
+            "좋은 마음이 드는 순간은 굳이 이유를 더 찾지 않아도 돼. "
+            "지금의 기분을 충분히 누려도 좋아."
+        ),
+        "기대": (
+            "기대되는 마음은 앞으로의 시간을 조금 더 빛나게 해. "
+            "지금의 설렘을 충분히 느껴도 좋아."
+        ),
+        "감사": (
+            "마음이 따뜻해지는 순간은 오래 남아. "
+            "지금 느낀 고마움을 그대로 간직해도 좋아."
+        ),
+        "자신감": (
+            "지금의 뿌듯한 마음은 충분히 누려도 좋아. "
+            "네가 해낸 과정도 함께 기억해 두면 좋겠다."
+        ),
+    }
+
+    if situation in situation_copy:
+        return situation_copy[situation]
+
+    defaults = {
+        "불안·걱정": (
+            "마음이 앞서 갈수록 아직 일어나지 않은 일까지 크게 느껴질 수 있어. "
+            "하지만 지금 당장 모든 답을 정하지 않아도 괜찮아."
+        ),
+        "답답·막막": (
+            "답이 바로 보이지 않을 때는 마음이 더 막막해질 수 있어. "
+            "하지만 지금 보이지 않는다고 해서 길이 없는 건 아니야."
+        ),
+        "피로·버거움": (
+            "지친 날에는 평소처럼 해내는 일도 더 어렵게 느껴질 수 있어. "
+            "오늘은 조금 천천히 가도 괜찮아."
+        ),
+        "저조·허탈": (
+            "마음이 가라앉는 날에는 모든 일이 평소보다 무겁게 느껴질 수 있어. "
+            "억지로 기분을 바꾸려 하기보다 지금의 상태를 잠깐 인정해도 괜찮아."
+        ),
+        "슬픔·상실": (
+            "슬픈 마음은 빨리 정리해야 하는 일이 아니야. "
+            "오늘은 그런 마음이 있다는 사실만 인정해도 괜찮아."
+        ),
+        "분노·짜증": (
+            "화가 난 마음에는 그만한 이유가 있을 수 있어. "
+            "지금 당장 감정을 없애려 하기보다 잠시 거리를 두고 바라봐도 괜찮아."
+        ),
+        "서운·배신": (
+            "서운한 마음을 너무 빨리 작게 만들 필요는 없어. "
+            "무엇이 마음에 남았는지 천천히 생각해도 괜찮아."
+        ),
+        "무기력·권태": (
+            "아무것도 하고 싶지 않은 날도 있어. "
+            "의욕이 바로 생기지 않아도 작은 움직임 하나면 충분해."
+        ),
+        "후회·아쉬움": (
+            "지나간 일을 다시 바꿀 수는 없지만 그때의 마음을 돌아볼 수는 있어. "
+            "그 아쉬움이 다음 선택을 조금 다르게 만들 수도 있어."
+        ),
+        "외로움·고독": (
+            "외로운 마음은 주변에 사람이 있는지와 꼭 같은 문제는 아니야. "
+            "누군가와 마음이 닿고 싶다는 신호일 수도 있어."
+        ),
+        "두려움": (
+            "두려운 마음이 든다고 해서 앞으로 나아갈 수 없는 건 아니야. "
+            "지금은 한 번에 멀리 가기보다 다음 한 걸음만 생각해도 괜찮아."
+        ),
+        "부끄러움·죄책감": (
+            "마음에 걸리는 일이 있으면 지나간 장면이 자꾸 떠오를 수 있어. "
+            "하지만 그 마음을 알아차린 것부터가 다음 선택의 시작일 수 있어."
+        ),
+        "억울·모욕": (
+            "억울한 마음은 쉽게 가라앉지 않을 수 있어. "
+            "지금은 네가 왜 힘들었는지를 스스로 분명히 아는 것부터 해도 괜찮아."
+        ),
+        "당황·혼란": (
+            "생각이 복잡할 때는 답을 서둘러 정할수록 더 헷갈릴 수 있어. "
+            "지금은 하나씩 나눠 생각해도 괜찮아."
+        ),
+        "만족·자신감": (
+            "지금의 뿌듯한 마음은 충분히 누려도 좋아. "
+            "네가 해낸 과정도 함께 기억해 두면 좋겠다."
+        ),
+        "감사·감동": (
+            "마음이 따뜻해지는 순간은 오래 남아. "
+            "지금 느낀 고마움을 그대로 간직해도 좋아."
+        ),
+        "기대·설렘": (
+            "기대되는 마음은 앞으로의 시간을 조금 더 빛나게 해. "
+            "지금의 설렘을 충분히 느껴도 좋아."
+        ),
+    }
+
+    return defaults.get(
+        emotion,
+        "지금 느끼는 마음을 억지로 바꾸려 하지 않아도 괜찮아. 잠시 그대로 바라봐도 좋아."
+    )
+
+
+def get_quote_intro(emotion: str, situation: str) -> str:
+    intro_map = {
+        "평온": "그래서 오늘은 지금의 편안한 마음과 잘 어울리는 문장을 골랐어.",
+        "혼자휴식": "그래서 오늘은 지금의 편안한 마음과 잘 어울리는 문장을 골랐어.",
+        "안도": "그래서 오늘은 지금의 편안한 마음과 잘 어울리는 문장을 골랐어.",
+        "학습속도비교": "그래서 오늘은 조급해진 마음을 조금 느슨하게 해 줄 문장을 골랐어.",
+        "일반비교": "그래서 오늘은 다른 사람의 속도에서 잠시 벗어나게 해 줄 문장을 골랐어.",
+        "반복수정불안": "그래서 오늘은 불안한 마음을 조금 가볍게 바라볼 수 있는 문장을 골랐어.",
+        "시험성적": "그래서 오늘은 결과 하나로 너를 다 판단하지 않게 해 줄 문장을 골랐어.",
+        "발표면접": "그래서 오늘은 긴장 속에서도 네가 준비한 것을 믿게 해 줄 문장을 골랐어.",
+        "진로선택": "그래서 오늘은 선택 앞에서 가능성을 조금 넓게 보게 해 줄 문장을 골랐어.",
+        "기다림": "그래서 오늘은 아직 정해지지 않은 시간을 조금 편하게 바라보게 해 줄 문장을 골랐어.",
+        "새로운도전": "그래서 오늘은 낯선 시작 앞에서 한 걸음을 내딛게 해 줄 문장을 골랐어.",
+        "결과불확실": "그래서 오늘은 불안한 마음을 조금 가볍게 바라볼 수 있는 문장을 골랐어.",
+        "할일과다": "그래서 오늘은 해야 할 일에 떠밀리지 않게 해 줄 문장을 골랐어.",
+        "성과없음": "그래서 오늘은 오늘 하루를 너무 빨리 실패로 정하지 않게 해 줄 문장을 골랐어.",
+        "실수실패": "그래서 오늘은 한 번의 결과에서 다시 시작할 힘을 건네는 문장을 골랐어.",
+        "관계갈등": "그래서 오늘은 지금의 감정을 조금 떨어져 바라보게 해 줄 문장을 골랐어.",
+        "가족갈등": "그래서 오늘은 복잡한 마음을 조금 천천히 들여다보게 해 줄 문장을 골랐어.",
+        "관계긍정": "그래서 오늘은 지금의 따뜻한 마음과 잘 어울리는 문장을 골랐어.",
+        "외로움": "그래서 오늘은 혼자인 것 같은 마음에 작은 연결을 건네는 문장을 골랐어.",
+        "신체불편": "그래서 오늘은 잠시 쉬어 가도 괜찮다고 말해 주는 문장을 골랐어.",
+        "수면부족": "그래서 오늘은 오늘만큼은 조금 천천히 가도 괜찮다고 말해 주는 문장을 골랐어.",
+        "성취": "그래서 오늘은 지금의 뿌듯한 마음과 잘 어울리는 문장을 골랐어.",
+        "죄책감후회": "그래서 오늘은 지나간 일을 다음 선택으로 이어 가게 해 줄 문장을 골랐어.",
+        "억울함": "그래서 오늘은 지금의 마음을 조금 더 단단하게 바라보게 해 줄 문장을 골랐어.",
+        "혼란": "그래서 오늘은 복잡한 마음 속에서 생각을 조금 정리하게 해 줄 문장을 골랐어.",
+        "권태": "그래서 오늘은 익숙한 하루를 조금 다르게 바라보게 해 줄 문장을 골랐어.",
+        "상실": "그래서 오늘은 슬픈 마음 곁에 조용히 머물러 줄 문장을 골랐어.",
+        "행복": "그래서 오늘은 지금의 좋은 마음과 잘 어울리는 문장을 골랐어.",
+        "기대": "그래서 오늘은 지금의 설레는 마음과 잘 어울리는 문장을 골랐어.",
+        "감사": "그래서 오늘은 지금의 따뜻한 마음과 잘 어울리는 문장을 골랐어.",
+        "자신감": "그래서 오늘은 지금의 뿌듯한 마음과 잘 어울리는 문장을 골랐어.",
+    }
+
+    if situation in intro_map:
+        return intro_map[situation]
+
+    if emotion == "평온·편안":
+        return "그래서 오늘은 지금의 편안한 마음과 잘 어울리는 문장을 골랐어."
+    if emotion == "불안·걱정":
+        return "그래서 오늘은 불안한 마음을 조금 가볍게 바라볼 수 있는 문장을 골랐어."
+    if emotion == "답답·막막":
+        return "그래서 오늘은 막막한 마음을 조금 다르게 바라볼 수 있는 문장을 골랐어."
+    if emotion == "피로·버거움":
+        return "그래서 오늘은 잠시 속도를 늦춰도 괜찮다고 말해 주는 문장을 골랐어."
+    if emotion in {"행복·즐거움", "기대·설렘", "만족·자신감", "감사·감동"}:
+        return "그래서 오늘은 지금의 좋은 마음과 잘 어울리는 문장을 골랐어."
+    if emotion in {"분노·짜증", "서운·배신"}:
+        return "그래서 오늘은 지금의 감정을 조금 떨어져 바라보게 해 줄 문장을 골랐어."
+
+    return "그래서 오늘은 지금의 마음과 잘 어울리는 문장을 골랐어."
+
+
+def build_result_letter_lines(result: dict) -> list[str]:
+    """결과 편지는 이 함수에서만 조립한다."""
+    emotion = result["emotion"]
+    context = result["context"]
+    reason = result["reason"]
+
+    situation = detect_support_situation(reason, emotion, context)
+    opening = build_natural_opening(reason, emotion, context)
+    support = get_natural_support_copy(emotion, context, situation)
+    quote_intro = get_quote_intro(emotion, situation)
+
+    return [
+        opening,
+        support,
+        quote_intro,
+        "네가 바라는 것이 이루어지기를 바라.",
+    ]
+
+
+
 def build_support_message(emotion, context, wish):
     if context == "신체불편":
         return (
@@ -2451,21 +3001,7 @@ else:
         unsafe_allow_html=True,
     )
 
-    emotion_sentence = emotion_phrase_for_result(
-        result["emotion"], result.get("clarified_emotion", "")
-    ).rstrip(".!? ")
-
-    first_line = build_first_result_line(result["reason"], emotion_sentence)
-    letter_lines = [first_line]
-    if result["emotion"] == "불안·걱정":
-        letter_lines.append(comfort)
-    else:
-        letter_lines.extend(split_sentences_for_letter(comfort))
-    if result["emotion"] == "평온·편안":
-        letter_lines.append("그래서 오늘은 지금의 편안한 마음과 잘 어울리는 문장을 골랐어.")
-    else:
-        letter_lines.append(f"그래서 오늘은 {reason_for_quote.rstrip()} 이 문장을 골랐어.")
-    letter_lines.append("네가 바라는 것이 이루어지기를 바라.")
+    letter_lines = build_result_letter_lines(result)
 
     result_sentence = "".join(
         f'<div class="letter-sentence">{line}</div>'
