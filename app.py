@@ -1813,6 +1813,15 @@ if st.session_state.page == "input":
         elif st.session_state.needs_clarification and not clarified_emotion.strip():
             st.warning("떠오르는 감정을 한두 단어로 적어 줘.")
 
+        elif st.session_state.needs_clarification and needs_emotion_clarification(
+            clarified_emotion,
+            "",
+        ):
+            st.warning(
+                "조금만 더 마음에 가까운 말을 골라볼까? "
+                "예: 기쁨, 편안함, 불안, 답답함, 서운함, 뿌듯함"
+            )
+
         else:
             # 추가 질문 단계에서는 보관된 원래 답변을 기준으로 결과 생성
             pending = st.session_state.get(
@@ -1884,7 +1893,6 @@ else:
     comfort, reason_for_quote = build_support_message(
         result["emotion"], result["context"], result["wish_label"]
     )
-    card_class = pastel_class(result["emotion"])
 
     st.markdown('<div class="result-page-bg"></div>', unsafe_allow_html=True)
     st.markdown(
@@ -1927,7 +1935,7 @@ else:
 
     st.markdown(
         f"""
-        <div class="quote-card primary-card {card_class}">
+        <div class="quote-card primary-card">
             <div class="quote-inner">
                 <div class="quote-title">오늘 {result['name']}에게 건네는 한 문장</div>
                 <div class="quote-text">“{format_quote_card_text(q['text'])}”</div>
@@ -1964,7 +1972,7 @@ else:
         q2 = QUOTES[st.session_state.second_quote_idx]
         st.markdown(
             f"""
-            <div class="quote-card secondary-card {card_class}" style="margin-top: 0.15rem;">
+            <div class="quote-card secondary-card" style="margin-top: 0.15rem;">
                 <div class="quote-inner">
                     <div class="quote-title">하나 더 건네는 문장</div>
                     <div class="quote-text">“{format_quote_card_text(q2['text'])}”</div>
