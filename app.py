@@ -10,7 +10,7 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Nanum+Pen+Script&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Single+Day&display=swap');
 
 html, body, [class*="css"], .stApp {
     font-family: 'Gowun Dodum', 'Malgun Gothic', sans-serif;
@@ -24,107 +24,158 @@ html, body, [class*="css"], .stApp {
 
 .result-box {
     position: relative;
-    padding: 1.7rem 1.55rem;
-    border-radius: 24px;
+    padding: 1.65rem 1.55rem 1.5rem 1.55rem;
+    border-radius: 22px;
     margin-top: 1.1rem;
     background:
-        linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,253,248,0.95)),
+        linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,252,246,0.97)),
         repeating-linear-gradient(
             180deg,
             rgba(0,0,0,0) 0px,
-            rgba(0,0,0,0) 32px,
-            rgba(208, 198, 183, 0.22) 33px,
-            rgba(0,0,0,0) 34px
+            rgba(0,0,0,0) 31px,
+            rgba(191, 182, 168, 0.20) 32px,
+            rgba(0,0,0,0) 33px
         );
-    border: 1px solid rgba(188, 173, 153, 0.45);
+    border: 1px solid rgba(191, 178, 160, 0.45);
     box-shadow: 0 5px 20px rgba(40, 40, 40, 0.06);
+    overflow: hidden;
 }
 .result-box::before {
     content: "";
     position: absolute;
     left: 18px;
-    top: 16px;
-    bottom: 16px;
+    top: 14px;
+    bottom: 14px;
     width: 2px;
-    background: linear-gradient(180deg, rgba(209, 120, 120, 0.20), rgba(209, 120, 120, 0.08));
+    background: linear-gradient(180deg, rgba(212, 128, 128, 0.20), rgba(212, 128, 128, 0.08));
     border-radius: 3px;
 }
+.letter-stamp {
+    position: absolute;
+    top: 16px;
+    right: 18px;
+    width: 64px;
+    height: 78px;
+    background: linear-gradient(180deg, rgba(249,239,227,0.95), rgba(245,234,220,0.96));
+    border: 2px dashed rgba(176, 146, 118, 0.50);
+    border-radius: 10px;
+    transform: rotate(6deg);
+    box-shadow: 0 3px 10px rgba(80, 60, 40, 0.07);
+}
+.letter-stamp::before {
+    content: "✿";
+    position: absolute;
+    left: 50%;
+    top: 18px;
+    transform: translateX(-50%);
+    font-size: 1.2rem;
+    color: rgba(170, 132, 104, 0.75);
+}
+.letter-stamp::after {
+    content: "";
+    position: absolute;
+    left: 11px;
+    bottom: 14px;
+    width: 40px;
+    height: 18px;
+    border-top: 1.5px solid rgba(173, 142, 115, 0.35);
+    border-bottom: 1.5px solid rgba(173, 142, 115, 0.35);
+    border-radius: 50%;
+}
 .letter-body {
-    padding-left: 0.9rem;
-    font-family: 'Nanum Pen Script', 'Gowun Dodum', sans-serif;
-    font-size: 1.7rem;
-    line-height: 1.72;
+    padding-left: 0.95rem;
+    padding-right: 4.2rem;
+    font-family: 'Single Day', 'Gowun Dodum', sans-serif;
+    font-size: 1.4rem;
+    line-height: 1.8;
     color: #4b4038;
     letter-spacing: 0.01em;
+    word-break: keep-all;
+}
+.letter-greeting {
+    display: block;
+    margin-bottom: 0.15rem;
 }
 .letter-body strong {
     font-weight: 700;
 }
 .quote-card {
     position: relative;
-    padding: 2.25rem 1.75rem 1.8rem 1.75rem;
-    border-radius: 28px;
-    margin-top: 1.35rem;
+    padding: 2.5rem 1.85rem 1.9rem 1.85rem;
+    margin-top: 1.4rem;
     box-shadow: 0 6px 24px rgba(40, 40, 40, 0.07);
-    border: 1px solid rgba(176, 150, 124, 0.30);
+    border: 1px solid rgba(201, 186, 169, 0.45);
     overflow: hidden;
+    clip-path: polygon(
+        12px 0%, calc(100% - 12px) 0%,
+        100% 12px, 100% calc(100% - 12px),
+        calc(100% - 12px) 100%, 12px 100%,
+        0% calc(100% - 12px), 0% 12px
+    );
 }
 .quote-card::before {
     content: "";
     position: absolute;
-    left: 0;
-    right: 0;
-    top: 22px;
-    height: 20px;
-    background: linear-gradient(90deg, rgba(173,141,112,0.14), rgba(198,166,137,0.24), rgba(173,141,112,0.14));
+    left: 50%;
+    top: 0;
+    width: 12px;
+    height: 54%;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg, rgba(182,150,107,0.88), rgba(230,214,190,0.98), rgba(182,150,107,0.86));
+    box-shadow: inset 0 0 4px rgba(255,255,255,0.55);
+    z-index: 2;
 }
 .quote-card::after {
     content: "";
     position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 50%;
-    width: 18px;
-    transform: translateX(-50%);
-    background: linear-gradient(180deg, rgba(173,141,112,0.12), rgba(198,166,137,0.22), rgba(173,141,112,0.12));
+    left: calc(50% - 1px);
+    top: 16px;
+    width: 2px;
+    height: 46%;
+    background: rgba(255,255,255,0.55);
+    opacity: 0.55;
+    z-index: 3;
 }
 .ribbon-knot {
     position: absolute;
     top: 12px;
     left: 50%;
-    width: 44px;
-    height: 44px;
+    width: 26px;
+    height: 26px;
     transform: translateX(-50%) rotate(45deg);
-    background: linear-gradient(135deg, rgba(191,164,137,0.60), rgba(225,208,190,0.90));
-    border-radius: 10px;
-    box-shadow: 0 3px 10px rgba(100, 80, 60, 0.10);
-    z-index: 2;
+    background: linear-gradient(135deg, rgba(193,164,123,0.94), rgba(240,228,205,0.98));
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(100, 80, 60, 0.12);
+    z-index: 4;
 }
-.ribbon-knot::before,
-.ribbon-knot::after {
-    content: "";
+.ribbon-tail-left,
+.ribbon-tail-right {
     position: absolute;
-    width: 18px;
-    height: 18px;
-    border-top: 2px solid rgba(141,112,85,0.35);
-    border-left: 2px solid rgba(141,112,85,0.35);
-    border-radius: 4px;
-    background: rgba(255,255,255,0.16);
+    top: 31px;
+    width: 120px;
+    height: 44px;
+    border-top: 3px solid rgba(191,160,118,0.82);
+    border-radius: 0 0 100px 100px;
+    z-index: 3;
+    opacity: 0.9;
+    filter: drop-shadow(0 1px 2px rgba(255,255,255,0.28));
 }
-.ribbon-knot::before {
-    top: 3px;
-    left: -7px;
-    transform: rotate(-35deg);
+.ribbon-tail-left {
+    right: 50%;
+    margin-right: 13px;
+    border-left: 0;
+    transform: rotate(10deg);
 }
-.ribbon-knot::after {
-    top: -7px;
-    left: 3px;
-    transform: rotate(125deg);
+.ribbon-tail-right {
+    left: 50%;
+    margin-left: 13px;
+    border-right: 0;
+    transform: rotate(-10deg);
 }
 .quote-inner {
     position: relative;
-    z-index: 3;
-    margin-top: 1.0rem;
+    z-index: 5;
+    margin-top: 1.15rem;
 }
 
 .pastel-warm {
@@ -762,6 +813,8 @@ def natural_reason_clause(reason: str) -> str:
     # 명사 서술형: "토요일 밤이야" -> "토요일 밤이기 때문에"
     if r.endswith("이야"):
         return r[:-2] + "이기 때문에"
+    if r.endswith("야") and not r.endswith("이야"):
+        return r[:-1] + "이기 때문에"
     if r.endswith("이었어"):
         return r[:-3] + "이어서"
     if r.endswith("였어"):
@@ -782,6 +835,16 @@ def natural_reason_clause(reason: str) -> str:
             return r[:-4] + "완성했기 때문에"
         if r.endswith("완성했다"):
             return r[:-4] + "완성했기 때문에"
+
+    # ~거든 종결형: "만들었거든" -> "만들었기 때문에"
+    if r.endswith("했거든"):
+        return r[:-4] + "했기 때문에"
+    if r.endswith("었거든"):
+        return r[:-4] + "었기 때문에"
+    if r.endswith("았거든"):
+        return r[:-4] + "았기 때문에"
+    if r.endswith("거든"):
+        return r[:-3] + "기 때문에"
 
     # 자주 나오는 구어 종결형
     replacements = [
@@ -1150,7 +1213,6 @@ else:
     st.title("오늘의 문장 🌿")
 
     result_sentence = (
-        f"{call_name}. "
         f"{natural_reason_clause(result['reason'])} "
         f"{emotion_phrase_for_result(result['emotion'], result.get('clarified_emotion', ''))} "
         f"{comfort} "
@@ -1161,7 +1223,11 @@ else:
     st.markdown(
         f"""
         <div class="result-box">
-            <div class="letter-body">{result_sentence}</div>
+            <div class="letter-stamp"></div>
+            <div class="letter-body">
+                <span class="letter-greeting">{call_name}.</span>
+                {result_sentence}
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -1171,6 +1237,8 @@ else:
         f"""
         <div class="quote-card {card_class}">
             <div class="ribbon-knot"></div>
+            <div class="ribbon-tail-left"></div>
+            <div class="ribbon-tail-right"></div>
             <div class="quote-inner">
                 <div class="quote-title">{result['name']}에게 오늘 건네는 한 문장</div>
                 <div class="quote-text">“{q['text']}”</div>
