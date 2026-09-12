@@ -321,6 +321,19 @@ div[data-testid="stButton"] button[kind="secondary"] {
     color: #557080;
 }
 
+
+div[data-testid="stForm"] button[kind="primary"] p,
+div[data-testid="stFormSubmitButton"] button p {
+    color: #f3cf6c !important;
+    font-family: 'Jua', 'Gowun Dodum', sans-serif !important;
+    font-weight: 400 !important;
+    letter-spacing: 0.02em !important;
+}
+div[data-testid="stForm"] button[kind="primary"]:hover p,
+div[data-testid="stFormSubmitButton"] button:hover p {
+    color: #ffe18d !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -1390,9 +1403,9 @@ if st.session_state.page == "input":
         wish = st.text_area("4. 바라는 것이 있어?", height=105, key="wish_input")
 
         button_label = (
-            "감정 적고 결과 보기"
+            "감정 적고 열어보세요"
             if st.session_state.needs_clarification
-            else "결과 보기"
+            else "열어보세요"
         )
 
         submitted = st.form_submit_button(
