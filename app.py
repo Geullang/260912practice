@@ -1613,6 +1613,23 @@ def quote_score(quote, emotion, context, wish):
             score += 7
 
     score += special_bonus(quote, emotion, context)
+
+    # 평온·편안은 '잔잔해 보이는 문장'보다
+    # 지금, 자기 자신, 서두르지 않음, 일상의 작은 기쁨에 직접 닿는 문장을 우선한다.
+    if emotion == "평온·편안":
+        calm_priority = {
+            "서두를 필요도, 빛나 보일 필요도, 자기 아닌 다른 사람이 될 필요도 없다.": 18,
+            "세상에서 가장 큰 일은 자기 자신에게 속할 줄 아는 것이다.": 17,
+            "나는 지금의 나로 존재한다. 그것으로 충분하다.": 16,
+            "영원은 수많은 ‘지금’으로 이루어진다.": 15,
+            "일상의 작은 것들에 진짜 관심을 갖는 데에도 삶의 기쁨이 있다.": 14,
+        }
+        calm_demote = {
+            "네가 강과 하늘을 보며 느끼는 것처럼, 나도 그렇게 느꼈다.": -18,
+        }
+        score += calm_priority.get(quote["text"], 0)
+        score += calm_demote.get(quote["text"], 0)
+
     return score
 
 def choose_quote(mood_text: str, reason_text: str, wish_text: str):
@@ -2119,11 +2136,11 @@ def build_support_message(emotion, context, wish):
         if context == "안도·무사함":
             return (
                 "특별한 일이 없었다는 사실이 오히려 마음을 놓이게 하는 날도 있어. 오늘 하루를 무사히 지나왔다는 것만으로도 충분히 괜찮은 하루일 수 있어.",
-                "무사히 지나온 오늘을 가볍게 인정하고 편안하게 바라보게 해 주는 뜻이 담겨 있어서",
+                "지금의 편안한 마음과 잘 어울리는",
             )
         return (
             "마음이 잔잔한 순간은 생각보다 귀해. 무엇을 더 채우기보다 지금의 편안함을 그대로 느껴도 좋아.",
-            "지금의 고요한 마음을 소중히 바라보게 해 주는 뜻이 담겨 있어서",
+            "지금의 편안한 마음과 잘 어울리는",
         )
 
     if emotion == "분노·짜증":
@@ -2444,7 +2461,10 @@ else:
         letter_lines.append(comfort)
     else:
         letter_lines.extend(split_sentences_for_letter(comfort))
-    letter_lines.append(f"그래서 오늘은 {reason_for_quote.rstrip()} 이 문장을 골랐어.")
+    if result["emotion"] == "평온·편안":
+        letter_lines.append("그래서 오늘은 지금의 편안한 마음과 잘 어울리는 문장을 골랐어.")
+    else:
+        letter_lines.append(f"그래서 오늘은 {reason_for_quote.rstrip()} 이 문장을 골랐어.")
     letter_lines.append("네가 바라는 것이 이루어지기를 바라.")
 
     result_sentence = "".join(
