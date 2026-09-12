@@ -1959,10 +1959,18 @@ def build_first_result_line(reason: str, emotion_sentence: str) -> str:
     if reason_is_emotion_only(reason):
         return emotion_sentence + "."
 
-    cleaned_reason = smooth_reason_for_result(reason)
+    cleaned_reason = smooth_reason_for_result(reason).strip().rstrip(".!? ")
+
+    # "이번에는 완성할 수 있을까"처럼 걱정/의문이 담긴 이유는
+    # 감정과 직접 이어 주는 편이 자연스럽다.
+    if cleaned_reason.endswith("을까") or cleaned_reason.endswith("ㄹ까") or cleaned_reason.endswith("할까"):
+        return f"{cleaned_reason} 싶어 {emotion_sentence}."
+
+    if "있을까" in cleaned_reason and not cleaned_reason.endswith("싶어"):
+        return f"{cleaned_reason} 싶어 {emotion_sentence}."
+
     clause = natural_reason_clause(cleaned_reason).strip().rstrip(".!? ")
 
-    # 안전하게 원인절로 끝난 경우에만 한 문장으로 연결
     connective_endings = (
         "해서", "어서", "아서", "돼서", "되어서",
         "때문에", "라서", "이라서", "여서", "니까",
@@ -1972,10 +1980,11 @@ def build_first_result_line(reason: str, emotion_sentence: str) -> str:
     if clause.endswith(connective_endings):
         return f"{clause} {emotion_sentence}."
 
-    # 억지로 '-때문에'를 붙이지 않는다.
-    # 사용자의 이유는 한 문장으로 보존하고 감정은 다음 문장으로 자연스럽게 연결.
+    # 불필요한 '그래서'를 만들지 않고 자연스럽게 두 절을 잇는다.
     if clause:
-        return f"{clause}. 그래서 {emotion_sentence}."
+        if clause.endswith(("데", "는데", "은데", "했는데", "였는데", "인데")):
+            return f"{clause} {emotion_sentence}."
+        return f"{clause}. {emotion_sentence}."
 
     return emotion_sentence + "."
 
@@ -2090,8 +2099,8 @@ def build_support_message(emotion, context, wish):
 
     if emotion == "불안·걱정":
         return (
-            "아직 정해지지 않은 일은 마음을 쉽게 지치게 해. 지금 당장 모든 답을 정하지 않아도 괜찮아.",
-            "불안한 순간에도 마음을 조금 넓게 바라볼 수 있게 해 주는 뜻이 담겨 있어서",
+            "아직 정해지지 않은 일은 마음을 쉽게 지치게 해. 하지만 지금 당장 모든 답을 정하지 않아도 괜찮아.",
+            "불안한 순간에도 마음을 조금 넓게 바라볼 수 있게 해 주는 뜻이 담겨 있는",
         )
 
     if emotion == "두려움":
@@ -2379,7 +2388,10 @@ else:
 
     first_line = build_first_result_line(result["reason"], emotion_sentence)
     letter_lines = [first_line]
-    letter_lines.extend(split_sentences_for_letter(comfort))
+    if result["emotion"] == "불안·걱정":
+        letter_lines.append(comfort)
+    else:
+        letter_lines.extend(split_sentences_for_letter(comfort))
     letter_lines.append(f"그래서 오늘은 {reason_for_quote.rstrip()} 이 문장을 골랐어.")
     letter_lines.append("네가 바라는 것이 이루어지기를 바라.")
 
@@ -2391,7 +2403,6 @@ else:
     st.markdown(
         f"""
         <div class="result-box">
-            <div class="letter-date">{today_korean_date()}</div>
             <div class="letter-body">
                 <span class="letter-greeting">{call_name}.</span>
                 {result_sentence}
