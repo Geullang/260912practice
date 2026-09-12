@@ -971,6 +971,36 @@ def pastel_class(emotion: str):
         return "pastel-soft"
     return "pastel-fresh"
 
+
+def choose_second_quote(mood: str, reason: str, wish: str, first_idx: int) -> int:
+    """
+    첫 번째 문장과 겹치지 않는 두 번째 문장을 고릅니다.
+    같은 감정·상황·바람 입력을 기준으로 추천하되, 최대한 기존 추천 로직을 그대로 활용합니다.
+    """
+    tried = set()
+    for _ in range(20):
+        idx, _, _, _ = choose_quote(mood, reason, wish)
+        if idx != first_idx:
+            return idx
+        tried.add(idx)
+
+    # 드물게 같은 문장만 반복되면, 태그가 겹치는 다른 문장을 우선 탐색
+    first_tags = set(QUOTES[first_idx].get("tags", []))
+    candidates = []
+    for i, q in enumerate(QUOTES):
+        if i == first_idx:
+            continue
+        overlap = len(first_tags & set(q.get("tags", [])))
+        candidates.append((overlap, i))
+
+    candidates.sort(reverse=True)
+    if candidates:
+        top_overlap = candidates[0][0]
+        pool = [i for overlap, i in candidates if overlap == top_overlap]
+        return random.choice(pool)
+
+    return first_idx
+
 def build_support_message(emotion, context, wish):
     if emotion == "저조·허탈":
         if context == "하루성과없음":
@@ -1152,6 +1182,9 @@ if st.session_state.page == "input":
             )
 
             clean_name = normalize_name_input(name)
+            if "second_quote_idx" in st.session_state:
+                del st.session_state["second_quote_idx"]
+
             st.session_state.result = {
                 "name": clean_name,
                 "mood": mood.strip(),
@@ -1215,10 +1248,36 @@ else:
         unsafe_allow_html=True,
     )
 
+    if "second_quote_idx" not in st.session_state:
+        if st.button("하나 더 선물할게", use_container_width=True):
+            st.session_state.second_quote_idx = choose_second_quote(
+                result["analysis_mood"],
+                result["reason"],
+                result["wish"],
+                result["chosen_idx"],
+            )
+            st.rerun()
+    else:
+        q2 = QUOTES[st.session_state.second_quote_idx]
+        st.markdown(
+            f"""
+            <div class="quote-card {card_class}" style="margin-top: 1rem;">
+                <div class="quote-inner">
+                    <div class="quote-title">하나 더 건네는 문장</div>
+                    <div class="quote-text">“{q2['text']}”</div>
+                    <div class="quote-meta">— {q2['author']}</div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
     if st.button("처음으로 돌아가기", use_container_width=True):
         st.session_state.page = "input"
         if "result" in st.session_state:
             del st.session_state.result
+        if "second_quote_idx" in st.session_state:
+            del st.session_state.second_quote_idx
         st.session_state.needs_clarification = False
         for key in [
             "name_input",
