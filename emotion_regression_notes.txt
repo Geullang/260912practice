@@ -1,0 +1,8 @@
+v58 emotion-form regression checks
+- 화남 / 화가 남 / 화났어 / 화났음 / 화나요
+- 슬픔 / 슬퍼
+- 불안함 / 불안해요
+- 짜증남
+- 편안함 / 뿌듯함
+- 외로움 / 막막함 / 억울함 / 후회함
+All above must be recognized as explicit emotion forms.
