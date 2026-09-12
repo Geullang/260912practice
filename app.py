@@ -1930,27 +1930,77 @@ def reason_is_emotion_only(reason: str) -> bool:
 
 
 
+def convert_first_person_to_second(text: str) -> str:
+    """결과 편지에서는 사용자의 1인칭 표현을 자연스러운 2인칭으로 바꿉니다."""
+    s = text
+
+    replacements = [
+        (r"(?<![가-힣])나는(?![가-힣])", "너는"),
+        (r"(?<![가-힣])내가(?![가-힣])", "네가"),
+        (r"(?<![가-힣])나를(?![가-힣])", "너를"),
+        (r"(?<![가-힣])나에게(?![가-힣])", "너에게"),
+        (r"(?<![가-힣])나한테(?![가-힣])", "너한테"),
+        (r"(?<![가-힣])나도(?![가-힣])", "너도"),
+        (r"(?<![가-힣])나만(?![가-힣])", "너만"),
+        (r"(?<![가-힣])나의(?![가-힣])", "너의"),
+        (r"(?<![가-힣])내 마음(?![가-힣])", "네 마음"),
+        (r"(?<![가-힣])내 생각(?![가-힣])", "네 생각"),
+        (r"(?<![가-힣])내 속도(?![가-힣])", "네 속도"),
+    ]
+    for pattern, repl in replacements:
+        s = re.sub(pattern, repl, s)
+
+    return s
+
+
 def smooth_reason_for_result(reason: str) -> str:
-    """사용자의 이유를 과하게 재작성하지 않고 결과 문장에 맞게 최소한으로 다듬습니다."""
+    """사용자의 사실관계는 보존하면서 결과 편지에 맞게 최소한으로 자연스럽게 다듬습니다."""
     s = reason.strip().replace("\n", " ").strip().rstrip(".!? ")
     if not s:
         return s
 
-    # "있거든 그리고"처럼 구어에서 자연스럽지만 문장 결합 시 어색한 연결만 정리
+    s = convert_first_person_to_second(s)
+
+    # 구어체 연결을 가볍게 정리
     replacements = [
         ("하고 있거든 그리고", "하고 있고,"),
         ("있거든 그리고", "있고,"),
         ("했거든 그리고", "했고,"),
         ("거든 그리고", "고,"),
         ("거든요 그리고", "고,"),
+        ("이번에는완성", "이번에는 완성"),
+        ("오늘 코딩 배우는데", "오늘 코딩을 배우면서"),
+        ("코딩 배우는데", "코딩을 배우면서"),
     ]
     for old, new in replacements:
         s = s.replace(old, new)
 
-    # 중복 공백/쉼표 정리
+    # 감정 앞에 오면 어색한 과거 종결형을 자연스러운 연결형으로 바꾸기 위한
+    # 대표 패턴. 원뜻은 바꾸지 않는다.
+    ending_map = [
+        ("남들보다 속도가 느렸어", "남들보다 배우는 속도가 느린 것 같아"),
+        ("속도가 느렸어", "속도가 느린 것 같아"),
+        ("잘 안됐어", "잘 안 되는 것 같아"),
+        ("잘 안 되었어", "잘 안 되는 것 같아"),
+        ("계속 틀렸어", "계속 틀려서"),
+        ("못 끝냈어", "끝내지 못해서"),
+        ("끝내지 못했어", "끝내지 못해서"),
+        ("실수했어", "실수해서"),
+        ("실패했어", "실패해서"),
+        ("늦었어", "늦어서"),
+        ("지쳤어", "지쳐서"),
+        ("힘들었어", "힘들어서"),
+    ]
+    for old, new in ending_map:
+        if s.endswith(old):
+            s = s[:-len(old)] + new
+            break
+
     s = re.sub(r"\s+", " ", s)
     s = re.sub(r",\s*,+", ",", s)
     return s.strip()
+
+
 
 
 def build_first_result_line(reason: str, emotion_sentence: str) -> str:
@@ -1961,29 +2011,31 @@ def build_first_result_line(reason: str, emotion_sentence: str) -> str:
 
     cleaned_reason = smooth_reason_for_result(reason).strip().rstrip(".!? ")
 
-    # "이번에는 완성할 수 있을까"처럼 걱정/의문이 담긴 이유는
-    # 감정과 직접 이어 주는 편이 자연스럽다.
-    if cleaned_reason.endswith("을까") or cleaned_reason.endswith("ㄹ까") or cleaned_reason.endswith("할까"):
+    # 의문/걱정은 "~까 싶어"로 연결
+    if cleaned_reason.endswith(("을까", "ㄹ까", "할까")):
         return f"{cleaned_reason} 싶어 {emotion_sentence}."
 
     if "있을까" in cleaned_reason and not cleaned_reason.endswith("싶어"):
         return f"{cleaned_reason} 싶어 {emotion_sentence}."
 
-    clause = natural_reason_clause(cleaned_reason).strip().rstrip(".!? ")
-
-    connective_endings = (
-        "해서", "어서", "아서", "돼서", "되어서",
+    # 이미 감정으로 자연스럽게 이어지는 형태는 그대로 연결
+    direct_endings = (
+        "같아", "해서", "어서", "아서", "돼서", "되어서",
         "때문에", "라서", "이라서", "여서", "니까",
         "기 때문에", "고", "지만", "는데", "면서",
+        "지쳐서", "힘들어서", "늦어서", "틀려서", "못해서",
+        "끝내지 못해서", "실수해서", "실패해서",
     )
+    if cleaned_reason.endswith(direct_endings):
+        return f"{cleaned_reason} {emotion_sentence}."
 
-    if clause.endswith(connective_endings):
+    clause = natural_reason_clause(cleaned_reason).strip().rstrip(".!? ")
+
+    if clause.endswith(direct_endings):
         return f"{clause} {emotion_sentence}."
 
-    # 불필요한 '그래서'를 만들지 않고 자연스럽게 두 절을 잇는다.
+    # 그래도 안전하게 연결이 어려우면 억지 인과 표현 없이 두 문장으로 둔다.
     if clause:
-        if clause.endswith(("데", "는데", "은데", "했는데", "였는데", "인데")):
-            return f"{clause} {emotion_sentence}."
         return f"{clause}. {emotion_sentence}."
 
     return emotion_sentence + "."
