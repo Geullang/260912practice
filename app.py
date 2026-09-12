@@ -10,7 +10,7 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Single+Day&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Sunflower:wght@300&display=swap');
 
 html, body, [class*="css"], .stApp {
     font-family: 'Gowun Dodum', 'Malgun Gothic', sans-serif;
@@ -22,22 +22,23 @@ html, body, [class*="css"], .stApp {
     padding-bottom: 3rem;
 }
 
+
 .result-box {
     position: relative;
-    padding: 1.55rem 1.55rem 1.45rem 1.55rem;
-    border-radius: 22px;
+    padding: 1.65rem 1.6rem 1.45rem 1.6rem;
+    border-radius: 18px;
     margin-top: 1.1rem;
     background:
-        linear-gradient(180deg, rgba(255,255,255,0.97), rgba(255,252,246,0.985)),
+        linear-gradient(180deg, rgba(255,252,246,0.99), rgba(254,250,242,0.99)),
         repeating-linear-gradient(
             180deg,
             rgba(0,0,0,0) 0px,
-            rgba(0,0,0,0) 28px,
-            rgba(188, 180, 168, 0.28) 29px,
-            rgba(0,0,0,0) 30px
+            rgba(0,0,0,0) 30px,
+            rgba(165, 177, 198, 0.22) 30px,
+            rgba(165, 177, 198, 0.22) 31px
         );
-    border: 1px solid rgba(191, 178, 160, 0.45);
-    box-shadow: 0 5px 20px rgba(40, 40, 40, 0.06);
+    border: 1px solid rgba(207, 194, 176, 0.65);
+    box-shadow: 0 6px 22px rgba(50, 40, 30, 0.06);
     overflow: hidden;
 }
 .result-box::before {
@@ -47,70 +48,80 @@ html, body, [class*="css"], .stApp {
     top: 14px;
     bottom: 14px;
     width: 2px;
-    background: linear-gradient(180deg, rgba(212, 128, 128, 0.18), rgba(212, 128, 128, 0.08));
+    background: rgba(211, 118, 118, 0.22);
     border-radius: 3px;
+}
+.result-box::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(90deg,
+            rgba(0,0,0,0) 0 12px,
+            rgba(221, 229, 237, 0.02) 12px 100%);
+    pointer-events: none;
 }
 .letter-stamp {
     position: absolute;
-    top: 14px;
+    top: 16px;
     right: 18px;
-    width: 86px;
-    height: 102px;
-    border-radius: 10px;
+    width: 92px;
+    height: 112px;
+    border-radius: 8px;
     transform: rotate(5deg);
-    background: linear-gradient(180deg, rgba(248,238,224,0.98), rgba(244,232,216,0.97));
-    box-shadow: 0 4px 14px rgba(90, 70, 50, 0.08);
-    border: 2px solid rgba(198, 176, 150, 0.65);
-    outline: 1px dashed rgba(170, 146, 120, 0.55);
+    background: linear-gradient(180deg, rgba(250,243,231,0.99), rgba(245,236,223,0.98));
+    border: 1px solid rgba(191, 170, 145, 0.95);
+    outline: 1px dashed rgba(171, 149, 124, 0.65);
     outline-offset: -7px;
+    box-shadow: 0 4px 12px rgba(90, 70, 50, 0.08);
 }
 .letter-stamp::before {
     content: "";
     position: absolute;
-    inset: 16px 15px 34px 15px;
-    border-radius: 6px;
+    inset: 15px 15px 35px 15px;
+    border-radius: 5px;
     background:
-        linear-gradient(180deg, rgba(224, 205, 183, 0.30), rgba(224, 205, 183, 0.10)),
-        radial-gradient(circle at 70% 28%, rgba(239,198,129,0.95) 0 10px, transparent 11px),
-        linear-gradient(180deg, rgba(181, 205, 214, 0.55) 0 45%, rgba(167, 196, 165, 0.58) 45% 100%);
-    border: 1px solid rgba(170, 144, 118, 0.34);
+        radial-gradient(circle at 72% 25%, rgba(243,205,127,0.94) 0 10px, transparent 11px),
+        linear-gradient(180deg, rgba(181, 203, 221, 0.58) 0 44%, rgba(168, 199, 169, 0.62) 44% 100%);
+    border: 1px solid rgba(170, 145, 119, 0.34);
 }
 .letter-stamp::after {
     content: "";
     position: absolute;
-    left: -10px;
+    left: -14px;
     top: 18px;
-    width: 112px;
-    height: 66px;
+    width: 118px;
+    height: 72px;
     background:
-        radial-gradient(circle at 32px 28px, transparent 0 15px, rgba(120, 103, 88, 0.48) 15.5px 17px, transparent 17.5px),
-        linear-gradient(transparent 0 26px, rgba(120, 103, 88, 0.38) 26px 28px, transparent 28px 36px, rgba(120, 103, 88, 0.38) 36px 38px, transparent 38px 46px, rgba(120, 103, 88, 0.38) 46px 48px, transparent 48px);
+        radial-gradient(circle at 31px 30px, transparent 0 15px, rgba(117,101,86,0.50) 15.5px 17px, transparent 17.5px),
+        linear-gradient(transparent 0 27px, rgba(117,101,86,0.40) 27px 29px, transparent 29px 39px, rgba(117,101,86,0.40) 39px 41px, transparent 41px 51px, rgba(117,101,86,0.40) 51px 53px, transparent 53px);
     transform: rotate(-7deg);
     opacity: 0.9;
 }
 .letter-body {
     padding-left: 0.95rem;
-    padding-right: 5.8rem;
-    font-family: 'Single Day', 'Gowun Dodum', sans-serif;
-    font-size: 1.32rem;
-    line-height: 1.78;
-    color: #4b4038;
-    letter-spacing: 0.01em;
+    padding-right: 6.2rem;
+    font-family: 'Sunflower', 'Gowun Dodum', sans-serif;
+    font-size: 1.2rem;
+    line-height: 1.92;
+    color: #4a4038;
+    letter-spacing: 0.005em;
     word-break: keep-all;
 }
 .letter-greeting {
     display: block;
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.22rem;
 }
 .letter-body strong {
     font-weight: 700;
 }
+
 .quote-card {
     position: relative;
-    padding: 2.7rem 1.9rem 1.95rem 1.9rem;
-    margin-top: 1.45rem;
+    padding: 2.95rem 1.95rem 1.95rem 1.95rem;
+    margin-top: 1.5rem;
     box-shadow: 0 6px 24px rgba(40, 40, 40, 0.07);
-    border: 1px solid rgba(201, 186, 169, 0.45);
+    border: 1px solid rgba(204, 189, 172, 0.54);
     overflow: hidden;
     clip-path: polygon(
         12px 0%, calc(100% - 12px) 0%,
@@ -122,13 +133,6 @@ html, body, [class*="css"], .stApp {
 .quote-card::before {
     content: "";
     position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, rgba(255,255,255,0.08), transparent 18%, transparent 82%, rgba(255,255,255,0.08));
-    pointer-events: none;
-}
-.quote-card::after {
-    content: "";
-    position: absolute;
     inset: 7px;
     clip-path: polygon(
         10px 0%, calc(100% - 10px) 0%,
@@ -136,71 +140,82 @@ html, body, [class*="css"], .stApp {
         calc(100% - 10px) 100%, 10px 100%,
         0% calc(100% - 10px), 0% 10px
     );
-    border: 1px solid rgba(255,255,255,0.38);
+    border: 1px solid rgba(255,255,255,0.45);
     pointer-events: none;
 }
-.ribbon-knot {
+.ribbon-center-band {
     position: absolute;
-    top: 8px;
+    top: 0;
     left: 50%;
-    width: 24px;
-    height: 24px;
-    transform: translateX(-50%) rotate(45deg);
-    background: linear-gradient(135deg, rgba(190,159,118,0.98), rgba(245,233,205,1));
-    border-radius: 5px;
-    box-shadow: 0 2px 8px rgba(100, 80, 60, 0.12);
-    z-index: 6;
+    width: 10px;
+    height: 120px;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg, rgba(192,160,119,0.96), rgba(244,232,206,1), rgba(192,160,119,0.95));
+    box-shadow: inset 0 0 4px rgba(255,255,255,0.55);
+    z-index: 3;
 }
 .ribbon-loop-left,
 .ribbon-loop-right {
     position: absolute;
-    top: 4px;
-    width: 62px;
-    height: 34px;
-    border: 3px solid rgba(193,160,116,0.9);
-    border-radius: 60px 60px 48px 48px;
-    background: linear-gradient(180deg, rgba(251,243,226,0.68), rgba(224,201,166,0.32));
-    box-shadow: inset 0 0 8px rgba(255,255,255,0.45);
+    top: 8px;
+    width: 74px;
+    height: 40px;
+    border: 3px solid rgba(196, 164, 121, 0.92);
+    background: linear-gradient(180deg, rgba(251,243,226,0.75), rgba(224,201,166,0.28));
+    box-shadow: inset 0 0 10px rgba(255,255,255,0.52);
     z-index: 5;
 }
 .ribbon-loop-left {
-    left: calc(50% - 72px);
-    transform: rotate(-9deg);
+    left: calc(50% - 86px);
+    border-radius: 80px 70px 65px 60px;
+    transform: rotate(-10deg);
 }
 .ribbon-loop-right {
-    left: calc(50% + 10px);
-    transform: rotate(9deg);
+    left: calc(50% + 12px);
+    border-radius: 70px 80px 60px 65px;
+    transform: rotate(10deg);
+}
+.ribbon-knot {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    width: 24px;
+    height: 24px;
+    transform: translateX(-50%) rotate(45deg);
+    background: linear-gradient(135deg, rgba(194,163,121,0.98), rgba(246,234,206,1));
+    border-radius: 5px;
+    box-shadow: 0 2px 8px rgba(100, 80, 60, 0.12);
+    z-index: 6;
 }
 .ribbon-tail-left,
 .ribbon-tail-right {
     position: absolute;
-    top: 23px;
-    height: 110px;
-    width: calc(50% - 36px);
+    top: 26px;
+    height: 122px;
+    width: calc(50% - 28px);
     z-index: 4;
     opacity: 0.95;
-    filter: drop-shadow(0 1px 2px rgba(255,255,255,0.25));
 }
 .ribbon-tail-left {
-    left: 18px;
-    border-top: 3px solid rgba(193,160,116,0.88);
-    border-left: 3px solid rgba(193,160,116,0.88);
-    border-top-left-radius: 120px 42px;
-    border-bottom-left-radius: 28px 78px;
-    border-top-right-radius: 120px 50px;
+    left: 16px;
+    border-top: 3px solid rgba(194,160,118,0.90);
+    border-left: 3px solid rgba(194,160,118,0.90);
+    border-top-left-radius: 125px 40px;
+    border-bottom-left-radius: 32px 92px;
+    border-top-right-radius: 125px 56px;
 }
 .ribbon-tail-right {
-    right: 18px;
-    border-top: 3px solid rgba(193,160,116,0.88);
-    border-right: 3px solid rgba(193,160,116,0.88);
-    border-top-right-radius: 120px 42px;
-    border-bottom-right-radius: 28px 78px;
-    border-top-left-radius: 120px 50px;
+    right: 16px;
+    border-top: 3px solid rgba(194,160,118,0.90);
+    border-right: 3px solid rgba(194,160,118,0.90);
+    border-top-right-radius: 125px 40px;
+    border-bottom-right-radius: 32px 92px;
+    border-top-left-radius: 125px 56px;
 }
 .quote-inner {
     position: relative;
     z-index: 7;
-    margin-top: 1.55rem;
+    margin-top: 1.7rem;
 }
 
 .pastel-warm {
@@ -217,20 +232,20 @@ html, body, [class*="css"], .stApp {
 }
 
 .quote-title {
-    font-size: 1.03rem;
+    font-size: 1.02rem;
     font-weight: 700;
     margin-bottom: 1.15rem;
     color: #5a4a3f;
 }
 .quote-text {
-    font-size: 1.5rem;
+    font-size: 1.44rem;
     line-height: 1.82;
     font-weight: 700;
     margin-bottom: 1rem;
     color: #43362d;
 }
 .quote-meta {
-    font-size: 0.96rem;
+    font-size: 0.95rem;
     opacity: 0.82;
     color: #5c5148;
 }
@@ -869,7 +884,10 @@ def natural_reason_clause(reason: str) -> str:
     if r.endswith("았거든"):
         return r[:-4] + "았기 때문에"
     if r.endswith("거든"):
-        return r[:-3] + "기 때문에"
+        stem = r[:-3]
+        if stem.endswith("했") or stem.endswith("었") or stem.endswith("았"):
+            return stem + "기 때문에"
+        return stem + "기 때문에"
 
     # 자주 나오는 구어 종결형
     replacements = [
@@ -1261,6 +1279,7 @@ else:
     st.markdown(
         f"""
         <div class="quote-card {card_class}">
+            <div class="ribbon-center-band"></div>
             <div class="ribbon-loop-left"></div>
             <div class="ribbon-loop-right"></div>
             <div class="ribbon-knot"></div>
