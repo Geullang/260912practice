@@ -694,6 +694,20 @@ div[data-testid="stButton"]:has(button[kind="secondary"]) {
     }
 }
 
+
+/* v46: soft mint guidance instead of yellow warning boxes for emotion clarification */
+.clarify-soft-guide {
+    margin: 0.45rem 0 0.8rem 0;
+    padding: 0.72rem 0.9rem;
+    border-radius: 14px;
+    background: rgba(225, 245, 238, 0.92);
+    border: 1px solid rgba(156, 210, 190, 0.68);
+    color: #356c63;
+    font-family: 'Gowun Dodum', sans-serif;
+    font-size: 0.94rem;
+    line-height: 1.55;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -1722,6 +1736,44 @@ def build_support_message(emotion, context, wish):
         "오늘의 마음을 조금 다른 시선으로 바라보는 데 도움이 될 것 같아서",
     )
 
+
+def choose_second_quote(mood: str, reason: str, wish: str, first_idx: int) -> int:
+    """
+    첫 번째 문장과 겹치지 않는 두 번째 문장을 고릅니다.
+    같은 감정·상황·바람 입력을 기준으로 추천하되, 최대한 기존 추천 로직을 그대로 활용합니다.
+    """
+    tried = set()
+    for _ in range(20):
+        idx, _, _, _ = choose_quote(mood, reason, wish)
+        if idx != first_idx:
+            return idx
+        tried.add(idx)
+
+    # 드물게 같은 문장만 반복되면, 태그가 겹치는 다른 문장을 우선 탐색
+    first_tags = set(QUOTES[first_idx].get("tags", []))
+    candidates = []
+    for i, q in enumerate(QUOTES):
+        if i == first_idx:
+            continue
+        overlap = len(first_tags & set(q.get("tags", [])))
+        candidates.append((overlap, i))
+
+    candidates.sort(reverse=True)
+    if candidates:
+        top_overlap = candidates[0][0]
+        pool = [i for overlap, i in candidates if overlap == top_overlap]
+        return random.choice(pool)
+
+    return first_idx
+
+
+def split_sentences_for_letter(text: str):
+    """마침표/물음표/느낌표 단위로 편지 문장을 줄바꿈하기 위한 보조 함수."""
+    chunks = re.findall(r"[^.!?]+[.!?]?", text.strip())
+    return [c.strip() for c in chunks if c.strip()]
+
+
+
 if "page" not in st.session_state:
     st.session_state.page = "input"
 
@@ -1760,123 +1812,102 @@ if st.session_state.page == "input":
     st.title("오늘 체크인 🌿")
     st.markdown("네 마음을 천천히 적어줘.  \n오늘의 마음에 어울리는 문장 하나를 골라 줄게.")
 
-    if "needs_clarification" not in st.session_state:
-        st.session_state.needs_clarification = False
+    # v45: 입력 폼을 제거해 2번 답변을 서버가 즉시 확인할 수 있게 함.
+    # 이제 감정이 아닌 답을 적고 다른 칸으로 이동하면 재질문이 바로 나타남.
+    name = st.text_input("1. 이름을 알려줘.", key="name_input")
+    mood = st.text_area("2. 지금 기분은 어떠니?", height=90, key="mood_input")
 
-    with st.form("morning_checkin"):
-        name = st.text_input("1. 이름을 알려줘.", key="name_input")
-        mood = st.text_area("2. 지금 기분은 어떠니?", height=90, key="mood_input")
+    # Q2 자체만으로 명백히 감정이 아닌 경우 즉시 재질문 표시.
+    # 신체상태처럼 Q3 맥락이 필요한 경우는 최종 제출 때 한 번 더 검증.
+    immediate_clarification = bool(mood.strip()) and needs_emotion_clarification(mood, "")
 
-        clarified_emotion = ""
-        if st.session_state.needs_clarification:
+    clarified_emotion = ""
+    if immediate_clarification:
+        st.markdown(
+            '<div class="clarify-note">지금 감정을 한두 단어로 표현한다면 뭐라고 할 수 있을까?</div>'
+            '<div class="clarify-sub">예: 답답함, 불안, 속상함, 편안함, 뿌듯함</div>',
+            unsafe_allow_html=True,
+        )
+        clarified_emotion = st.text_input(
+            "감정 한두 단어",
+            label_visibility="collapsed",
+            key="clarified_emotion_input",
+        )
+
+        if clarified_emotion.strip() and needs_emotion_clarification(clarified_emotion, ""):
             st.markdown(
-                '<div class="clarify-note">지금 감정을 한두 단어로 표현한다면 뭐라고 할 수 있을까?</div>'
-                '<div class="clarify-sub">예: 답답함, 불안, 속상함, 편안함, 뿌듯함</div>',
+                '<div class="clarify-soft-guide">'
+                '조금만 더 마음에 가까운 말을 골라볼까? '
+                '예: 기쁨, 편안함, 불안, 답답함, 서운함, 뿌듯함'
+                '</div>',
                 unsafe_allow_html=True,
             )
-            clarified_emotion = st.text_input(
-                "감정 한두 단어",
-                label_visibility="collapsed",
-                key="clarified_emotion_input",
-            )
 
-        reason = st.text_area("3. 지금 그런 기분이 드는 이유가 있어?", height=105, key="reason_input")
-        wish = st.text_area("4. 바라는 것이 있어?", height=105, key="wish_input")
+    reason = st.text_area("3. 지금 그런 기분이 드는 이유가 있어?", height=105, key="reason_input")
+    wish = st.text_area("4. 바라는 것이 있어?", height=105, key="wish_input")
 
-        button_label = (
-            "감정 적고 열어보세요"
-            if st.session_state.needs_clarification
-            else "열어보세요"
-        )
-
-        submitted = st.form_submit_button(
-            button_label,
-            type="primary",
-            use_container_width=True,
-        )
+    submitted = st.button(
+        "열어보세요",
+        type="primary",
+        use_container_width=True,
+        key="open_result_button",
+    )
 
     if submitted:
         if not all([name.strip(), mood.strip(), reason.strip(), wish.strip()]):
             st.warning("네 가지 질문에 모두 답해 줘.")
 
-        elif not st.session_state.needs_clarification and needs_emotion_clarification(mood, reason):
-            # 추가 감정 질문 단계로 넘어갈 때 현재 답변을 안전하게 보관
-            st.session_state.pending_checkin = {
-                "name": name.strip(),
-                "mood": mood.strip(),
-                "reason": reason.strip(),
-                "wish": wish.strip(),
-            }
-            st.session_state.needs_clarification = True
-            st.rerun()
-
-        elif st.session_state.needs_clarification and not clarified_emotion.strip():
-            st.warning("떠오르는 감정을 한두 단어로 적어 줘.")
-
-        elif st.session_state.needs_clarification and needs_emotion_clarification(
-            clarified_emotion,
-            "",
-        ):
-            st.warning(
-                "조금만 더 마음에 가까운 말을 골라볼까? "
-                "예: 기쁨, 편안함, 불안, 답답함, 서운함, 뿌듯함"
-            )
-
         else:
-            # 추가 질문 단계에서는 보관된 원래 답변을 기준으로 결과 생성
-            pending = st.session_state.get(
-                "pending_checkin",
-                {
-                    "name": name.strip(),
-                    "mood": mood.strip(),
-                    "reason": reason.strip(),
-                    "wish": wish.strip(),
-                },
-            )
+            # Q3까지 포함한 최종 판정.
+            final_needs_clarification = needs_emotion_clarification(mood, reason)
 
-            # 사용자가 추가 질문 화면에서 기존 답변을 수정했다면 최신 값 반영
-            pending["name"] = name.strip()
-            pending["mood"] = mood.strip()
-            pending["reason"] = reason.strip()
-            pending["wish"] = wish.strip()
+            if final_needs_clarification:
+                # 재질문이 필요한데 아직 답하지 않은 경우
+                if not clarified_emotion.strip():
+                    st.warning("떠오르는 감정을 한두 단어로 적어 줘.")
+                    st.stop()
 
-            was_clarified = st.session_state.needs_clarification
-            clarified_raw = clarified_emotion.strip() if was_clarified else ""
-            clarified_value = (
-                canonical_emotion_text(clarified_raw)
-                if was_clarified
-                else ""
-            )
-            mood_for_analysis = clarified_value if was_clarified else pending["mood"]
+                # 재질문 답도 감정이 아니면 결과로 넘어가지 않음
+                if needs_emotion_clarification(clarified_emotion, ""):
+                    st.markdown(
+                        '<div class="clarify-soft-guide">'
+                        '조금만 더 마음에 가까운 말을 골라볼까? '
+                        '예: 기쁨, 편안함, 불안, 답답함, 서운함, 뿌듯함'
+                        '</div>',
+                        unsafe_allow_html=True,
+                    )
+                    st.stop()
+
+                clarified_raw = clarified_emotion.strip()
+                clarified_value = canonical_emotion_text(clarified_raw)
+                mood_for_analysis = clarified_value
+            else:
+                clarified_value = ""
+                mood_for_analysis = mood.strip()
 
             chosen_idx, emotion, context, wish_label = choose_quote(
                 mood_for_analysis,
-                pending["reason"],
-                pending["wish"],
+                reason.strip(),
+                wish.strip(),
             )
 
-            clean_name = normalize_name_input(pending["name"])
+            clean_name = normalize_name_input(name.strip())
 
             if "second_quote_idx" in st.session_state:
                 del st.session_state["second_quote_idx"]
 
             st.session_state.result = {
                 "name": clean_name,
-                "mood": pending["mood"],
+                "mood": mood.strip(),
                 "clarified_emotion": clarified_value,
                 "analysis_mood": mood_for_analysis,
-                "reason": pending["reason"],
-                "wish": pending["wish"],
+                "reason": reason.strip(),
+                "wish": wish.strip(),
                 "chosen_idx": chosen_idx,
                 "emotion": emotion,
                 "context": context,
                 "wish_label": wish_label,
             }
-
-            # 결과 페이지로 넘어가기 전에 추가 질문 상태를 종료
-            st.session_state.needs_clarification = False
-            if "pending_checkin" in st.session_state:
-                del st.session_state["pending_checkin"]
 
             st.session_state.page = "result"
             st.rerun()
