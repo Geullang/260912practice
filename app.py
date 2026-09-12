@@ -67,6 +67,21 @@ html, body, [class*="css"], .stApp {
     font-size: 0.96rem;
     opacity: 0.78;
 }
+
+.clarify-note {
+    margin-top: -0.25rem;
+    margin-bottom: 0.45rem;
+    color: #d96b6b;
+    font-size: 0.98rem;
+    font-weight: 700;
+    line-height: 1.6;
+}
+.clarify-sub {
+    color: #9a6a6a;
+    font-size: 0.88rem;
+    margin-bottom: 0.35rem;
+}
+
 .small-note {
     font-size: 0.88rem;
     opacity: 0.68;
@@ -92,7 +107,7 @@ EMOTION_RULES = {
         "환상적", "기분 좋은", "경쾌", "활기찬", "상쾌", "산뜻"
     ],
     "평온·편안": [
-        "편안", "평온", "차분", "안정", "잔잔", "고요", "포근", "홀가분"
+        "편안", "평온", "차분", "안정", "잔잔", "고요", "포근", "홀가분", "괜찮아", "괜찮은 편"
     ],
     "감사·감동": [
         "감사", "고마", "감동", "감격", "뭉클", "따뜻", "다정", "애틋"
@@ -223,6 +238,9 @@ CONTEXT_RULES = {
     "신체불편": [
         "몸이 안 좋", "아파서", "감기", "두통", "몸살", "배가 아"
     ],
+    "안도·무사함": [
+        "무사히 지나", "무사히 끝", "잘 지나갔", "별일 없이", "아무 일 없이", "큰일 없이", "오늘도 지나갔"
+    ],
     "기대상황": [
         "기대돼", "기다리던", "여행", "약속", "행사", "만나기로"
     ],
@@ -280,6 +298,7 @@ CONTEXT_TO_TAGS = {
     "성취": ["자기신뢰", "희망", "오늘"],
     "수면부족": ["위로", "오늘"],
     "신체불편": ["위로"],
+    "안도·무사함": ["오늘", "위로", "희망"],
     "기대상황": ["희망", "가능성", "오늘"],
     "불확실": ["관점 전환", "가능성", "위로"],
 }
@@ -298,6 +317,15 @@ WISH_TO_TAGS = {
 }
 
 SPECIAL_QUOTE_RULES = [
+    {
+        "emotion": "평온·편안",
+        "context": "안도·무사함",
+        "preferred": [
+            "삶에는 우리에게 내어 줄 아름다움이 있다.",
+            "오늘 하루의 빛깔을 바꾸는 것, 그것이 가장 높은 예술이다.",
+            "나는 지금의 나로 존재한다. 그것으로 충분하다."
+        ]
+    },
     {
         "emotion": "저조·허탈",
         "context": "하루성과없음",
@@ -434,11 +462,67 @@ def infer_from_colloquial(mood_text: str, reason_text: str):
 
     return None
 
+
+AMBIGUOUS_MOOD_PATTERNS = [
+    "그냥 그래",
+    "그저 그래",
+    "평범해",
+    "평범",
+    "보통이야",
+    "보통",
+    "모르겠어",
+    "잘 모르겠어",
+    "애매해",
+    "애매",
+    "별 생각 없어",
+    "별생각 없어",
+    "딱히 없어",
+    "딱히",
+    "그럭저럭",
+    "똑같아",
+]
+
+def has_explicit_emotion(text: str) -> bool:
+    t = normalize(text)
+
+    # 명시적 감정어
+    for keywords in EMOTION_RULES.values():
+        if any(keyword in t for keyword in keywords):
+            return True
+
+    # 강한 구어/비속어/은어 표현
+    if any(p in t for p in COLLOQUIAL_POSITIVE):
+        return True
+    if any(p in t for p in COLLOQUIAL_NEGATIVE):
+        return True
+    for keywords in COLLOQUIAL_DIRECT.values():
+        if any(keyword in t for keyword in keywords):
+            return True
+
+    return False
+
+def needs_emotion_clarification(text: str) -> bool:
+    t = normalize(text)
+
+    # 감정어가 직접 있으면 다시 묻지 않음
+    if has_explicit_emotion(t):
+        return False
+
+    # 대표적인 모호 표현
+    if any(pattern in t for pattern in AMBIGUOUS_MOOD_PATTERNS):
+        return True
+
+    # 너무 짧고 감정 정보가 거의 없는 응답도 한 번 더 확인
+    if len(t) <= 6:
+        return True
+
+    return False
+
 def detect_emotion(mood_text: str, reason_text: str):
     mood = normalize(mood_text)
 
     # 부정형 먼저 처리: "안 좋아", "좋진 않아" 등을 긍정으로 오인하지 않게 함
-    if any(p in mood for p in ["안 좋아", "좋지 않아", "좋진 않아", "별로", "썩 좋지"]):
+    if any(p in mood for p in ["안 좋아", "좋지 않아", "좋진 않아", "별로", "썩 좋지", "안 괜찮아", "괜찮지 않아"]):
         return "저조·허탈"
 
     # 구어/비속어 층을 먼저 살펴봄
@@ -468,6 +552,7 @@ def detect_emotion(mood_text: str, reason_text: str):
         "기대상황": "기대·설렘",
         "혼자휴식": "평온·편안",
         "관계긍정": "행복·즐거움",
+        "안도·무사함": "평온·편안",
     }
     return context_fallback.get(context, "저조·허탈")
 
@@ -585,6 +670,11 @@ def build_support_message(emotion, context, wish):
         )
 
     if emotion == "평온·편안":
+        if context == "안도·무사함":
+            return (
+                "특별한 일이 없었다는 사실이 오히려 마음을 놓이게 하는 날도 있어. 오늘 하루를 무사히 지나왔다는 것만으로도 충분히 괜찮은 하루일 수 있어.",
+                "무사히 지나온 오늘을 가볍게 인정하고 편안하게 바라보게 해 주는 뜻이 담겨 있어서",
+            )
         return (
             "마음이 잔잔한 순간은 생각보다 귀해. 무엇을 더 채우기보다 지금의 편안함을 그대로 느껴도 좋아.",
             "지금의 고요한 마음을 소중히 바라보게 해 주는 뜻이 담겨 있어서",
@@ -666,14 +756,37 @@ if st.session_state.page == "input":
     st.title("오늘 건네는 한 문장 🌿")
     st.write("네 마음을 천천히 적어 줘. 오늘의 마음에 어울리는 문장 하나를 골라 줄게.")
 
+    if "needs_clarification" not in st.session_state:
+        st.session_state.needs_clarification = False
+
     with st.form("morning_checkin"):
-        name = st.text_input("1. 저는 (      )입니다. 이름을 써줘.")
-        mood = st.text_area("2. 지금 기분은 어떠니?", height=90)
-        reason = st.text_area("3. 왜 그런 것 같아?", height=105)
-        wish = st.text_area("4. 바라는 것이 있어?", height=105)
+        name = st.text_input("1. 저는 (      )입니다. 이름을 써줘.", key="name_input")
+        mood = st.text_area("2. 지금 기분은 어떠니?", height=90, key="mood_input")
+
+        clarified_emotion = ""
+        if st.session_state.needs_clarification:
+            st.markdown(
+                '<div class="clarify-note">감정으로 표현한다면 어떤 단어가 떠오르나요?</div>'
+                '<div class="clarify-sub">한두 단어로 적어줘.</div>',
+                unsafe_allow_html=True,
+            )
+            clarified_emotion = st.text_input(
+                "감정 한두 단어",
+                label_visibility="collapsed",
+                key="clarified_emotion_input",
+            )
+
+        reason = st.text_area("3. 왜 그런 것 같아?", height=105, key="reason_input")
+        wish = st.text_area("4. 바라는 것이 있어?", height=105, key="wish_input")
+
+        button_label = (
+            "감정 적고 오늘의 문장 받기"
+            if st.session_state.needs_clarification
+            else "오늘의 문장 받기"
+        )
 
         submitted = st.form_submit_button(
-            "오늘의 문장 받기",
+            button_label,
             type="primary",
             use_container_width=True,
         )
@@ -681,13 +794,31 @@ if st.session_state.page == "input":
     if submitted:
         if not all([name.strip(), mood.strip(), reason.strip(), wish.strip()]):
             st.warning("네 가지 질문에 모두 답해 줘.")
+        elif not st.session_state.needs_clarification and needs_emotion_clarification(mood):
+            st.session_state.needs_clarification = True
+            st.rerun()
+        elif st.session_state.needs_clarification and not clarified_emotion.strip():
+            st.warning("떠오르는 감정을 한두 단어로 적어 줘.")
         else:
-            chosen_idx, emotion, context, wish_label = choose_quote(
-                mood, reason, wish
+            mood_for_analysis = (
+                clarified_emotion.strip()
+                if st.session_state.needs_clarification
+                else mood.strip()
             )
+
+            chosen_idx, emotion, context, wish_label = choose_quote(
+                mood_for_analysis, reason, wish
+            )
+
             st.session_state.result = {
                 "name": name.strip(),
                 "mood": mood.strip(),
+                "clarified_emotion": (
+                    clarified_emotion.strip()
+                    if st.session_state.needs_clarification
+                    else ""
+                ),
+                "analysis_mood": mood_for_analysis,
                 "reason": reason.strip(),
                 "wish": wish.strip(),
                 "chosen_idx": chosen_idx,
@@ -695,6 +826,7 @@ if st.session_state.page == "input":
                 "context": context,
                 "wish_label": wish_label,
             }
+            st.session_state.alternate_used = False
             st.session_state.page = "result"
             st.rerun()
 
@@ -714,6 +846,11 @@ else:
         <div class="result-box">
             <strong>{call_name}.</strong><br><br>
             지금은 <strong>‘{result['mood']}’</strong>라고 느끼고 있구나.<br>
+            {(
+                f"감정으로는 <strong>‘{result['clarified_emotion']}’</strong>에 가깝다고 적어 주었네.<br>"
+                if result.get("clarified_emotion")
+                else ""
+            )}
             <strong>‘{result['reason']}’</strong>라는 이유도 함께 들려주었네.<br><br>
             {comfort}<br><br>
             그래서 오늘은 <strong>{reason_for_quote}</strong> 이 문장을 골랐어.
@@ -735,21 +872,36 @@ else:
 
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("다른 문장 보기", use_container_width=True):
-            chosen_idx, emotion, context, wish_label = choose_quote(
-                result["mood"], result["reason"], result["wish"]
-            )
-            st.session_state.result["chosen_idx"] = chosen_idx
-            st.session_state.result["emotion"] = emotion
-            st.session_state.result["context"] = context
-            st.session_state.result["wish_label"] = wish_label
-            st.rerun()
+        if not st.session_state.get("alternate_used", False):
+            if st.button("다른 문장 한 번 보기", use_container_width=True):
+                chosen_idx, emotion, context, wish_label = choose_quote(
+                    result.get("analysis_mood", result["mood"]), result["reason"], result["wish"]
+                )
+                st.session_state.result["chosen_idx"] = chosen_idx
+                st.session_state.result["emotion"] = emotion
+                st.session_state.result["context"] = context
+                st.session_state.result["wish_label"] = wish_label
+                st.session_state.alternate_used = True
+                st.rerun()
+        else:
+            st.button("다른 문장 보기 완료", disabled=True, use_container_width=True)
 
     with col2:
         if st.button("처음으로 돌아가기", use_container_width=True):
             st.session_state.page = "input"
             if "result" in st.session_state:
                 del st.session_state.result
+            st.session_state.alternate_used = False
+            st.session_state.needs_clarification = False
+            for key in [
+                "name_input",
+                "mood_input",
+                "reason_input",
+                "wish_input",
+                "clarified_emotion_input",
+            ]:
+                if key in st.session_state:
+                    del st.session_state[key]
             st.rerun()
 
     st.markdown(
