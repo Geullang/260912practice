@@ -79,8 +79,10 @@ p, label, div {
   .bg-leaf.l1, .bg-leaf.l2 { width: 72px; }
 }
 .st-key-gift_shell {
+    width: 100%;
     display: flex;
     justify-content: center;
+    align-items: center;
     margin-top: 0.95rem;
     margin-bottom: 0.1rem;
     text-align: center;
@@ -141,7 +143,7 @@ div[data-testid="stFormSubmitButton"] button {
     border-radius: 999px !important;
     min-height: 3rem !important;
     font-family: 'Jua', 'Gowun Dodum', sans-serif !important;
-    font-size: 1.06rem !important;
+    font-size: 1.20rem !important;
     font-weight: 400 !important;
     letter-spacing: 0.02em !important;
     text-shadow: 0 1px 0 rgba(255,255,255,0.45);
@@ -298,7 +300,7 @@ div[data-testid="stFormSubmitButton"] button:hover {
     margin-top: -0.1rem;
     margin-bottom: 0.45rem;
     font-family: 'Gowun Dodum', sans-serif;
-    font-size: 0.78rem;
+    font-size: 0.84rem;
     color: rgba(55, 92, 104, 0.72);
 }
 
@@ -337,6 +339,7 @@ div[data-testid="stForm"] button[kind="primary"] p,
 div[data-testid="stFormSubmitButton"] button p {
     color: #b78c2f !important;
     font-family: 'Jua', 'Gowun Dodum', sans-serif !important;
+    font-size: 1.20rem !important;
     font-weight: 400 !important;
     letter-spacing: 0.02em !important;
 }
