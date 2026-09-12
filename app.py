@@ -969,6 +969,100 @@ div[data-testid="stButton"]:has(button[kind="secondary"]) {
     display: none !important;
 }
 
+
+/* ===== v52: clean result background, no broken image fragments ===== */
+.result-page-bg {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 0 !important;
+    pointer-events: none !important;
+    background:
+        radial-gradient(circle at 70% 8%, rgba(255,255,255,0.50) 0 5%, transparent 19%),
+        radial-gradient(circle at 20% 20%, rgba(236,255,247,0.55) 0 5%, transparent 18%),
+        linear-gradient(180deg, #e5f5f1 0%, #dff3ef 52%, #dceff7 100%) !important;
+}
+
+/* Hide old decorative background fragments/notes left from previous versions. */
+.bg-note,
+.result-decor-note {
+    display: none !important;
+}
+
+
+/* Cover only the small baked-in white phrases while preserving the card photos. */
+.quote-card.primary-card::after,
+.quote-card.secondary-card::after {
+    content: "";
+    display: block !important;
+    position: absolute;
+    z-index: 1;
+    right: 0;
+    bottom: 0;
+    width: 31%;
+    height: 34%;
+    pointer-events: none;
+}
+
+.quote-card.primary-card::after {
+    background:
+        linear-gradient(135deg,
+            rgba(188,224,202,0.18) 0%,
+            rgba(159,208,175,0.72) 55%,
+            rgba(137,193,154,0.90) 100%);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.quote-card.secondary-card::after {
+    background:
+        linear-gradient(135deg,
+            rgba(174,221,244,0.18) 0%,
+            rgba(128,195,229,0.70) 55%,
+            rgba(95,177,220,0.90) 100%);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+/* Quote text: keep a stable readable column and natural line wrapping. */
+.quote-inner {
+    position: relative !important;
+    z-index: 3 !important;
+    max-width: 61% !important;
+}
+
+.quote-title {
+    margin-bottom: 0.92rem !important;
+}
+
+.quote-text {
+    font-size: 1.34rem !important;
+    line-height: 1.62 !important;
+    letter-spacing: -0.018em !important;
+    word-break: keep-all !important;
+    overflow-wrap: normal !important;
+    text-wrap: pretty;
+    margin-bottom: 0.68rem !important;
+}
+
+.quote-meta {
+    margin-top: 0.15rem !important;
+}
+
+@media (max-width: 760px) {
+    .quote-inner {
+        max-width: 65% !important;
+    }
+    .quote-text {
+        font-size: 1.18rem !important;
+        line-height: 1.58 !important;
+    }
+    .quote-card.primary-card::after,
+    .quote-card.secondary-card::after {
+        width: 34%;
+        height: 34%;
+    }
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -1698,7 +1792,7 @@ def natural_reason_clause(reason: str) -> str:
             if s.endswith(old):
                 return s[:-len(old)] + new
 
-        return s + " 때문에"
+        return s
 
     if len(parts) == 1:
         return to_causal(parts[0])
@@ -1836,11 +1930,54 @@ def reason_is_emotion_only(reason: str) -> bool:
 
 
 
+def smooth_reason_for_result(reason: str) -> str:
+    """사용자의 이유를 과하게 재작성하지 않고 결과 문장에 맞게 최소한으로 다듬습니다."""
+    s = reason.strip().replace("\n", " ").strip().rstrip(".!? ")
+    if not s:
+        return s
+
+    # "있거든 그리고"처럼 구어에서 자연스럽지만 문장 결합 시 어색한 연결만 정리
+    replacements = [
+        ("하고 있거든 그리고", "하고 있고,"),
+        ("있거든 그리고", "있고,"),
+        ("했거든 그리고", "했고,"),
+        ("거든 그리고", "고,"),
+        ("거든요 그리고", "고,"),
+    ]
+    for old, new in replacements:
+        s = s.replace(old, new)
+
+    # 중복 공백/쉼표 정리
+    s = re.sub(r"\s+", " ", s)
+    s = re.sub(r",\s*,+", ",", s)
+    return s.strip()
+
+
 def build_first_result_line(reason: str, emotion_sentence: str) -> str:
     emotion_sentence = emotion_sentence.rstrip(".!? ")
+
     if reason_is_emotion_only(reason):
         return emotion_sentence + "."
-    return f"{natural_reason_clause(reason)} {emotion_sentence}."
+
+    cleaned_reason = smooth_reason_for_result(reason)
+    clause = natural_reason_clause(cleaned_reason).strip().rstrip(".!? ")
+
+    # 안전하게 원인절로 끝난 경우에만 한 문장으로 연결
+    connective_endings = (
+        "해서", "어서", "아서", "돼서", "되어서",
+        "때문에", "라서", "이라서", "여서", "니까",
+        "기 때문에", "고", "지만", "는데", "면서",
+    )
+
+    if clause.endswith(connective_endings):
+        return f"{clause} {emotion_sentence}."
+
+    # 억지로 '-때문에'를 붙이지 않는다.
+    # 사용자의 이유는 한 문장으로 보존하고 감정은 다음 문장으로 자연스럽게 연결.
+    if clause:
+        return f"{clause}. 그래서 {emotion_sentence}."
+
+    return emotion_sentence + "."
 
 
 def emotion_phrase_for_result(emotion_label: str, raw_emotion: str = "") -> str:
@@ -2243,8 +2380,8 @@ else:
     first_line = build_first_result_line(result["reason"], emotion_sentence)
     letter_lines = [first_line]
     letter_lines.extend(split_sentences_for_letter(comfort))
+    letter_lines.append(f"그래서 오늘은 {reason_for_quote.rstrip()} 이 문장을 골랐어.")
     letter_lines.append("네가 바라는 것이 이루어지기를 바라.")
-    letter_lines.append(f"그래서 오늘은 {reason_for_quote} 이 문장을 골랐어.")
 
     result_sentence = "".join(
         f'<div class="letter-sentence">{line}</div>'
