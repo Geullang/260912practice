@@ -3,7 +3,7 @@ import re
 import streamlit as st
 
 st.set_page_config(
-    page_title="How’s Your Heart Today?",
+    page_title="오늘 체크인",
     page_icon="🌿",
     layout="centered",
 )
@@ -104,16 +104,16 @@ html, body, [class*="css"], .stApp {
 }
 
 .pastel-warm {
-    background: linear-gradient(135deg, #fff1f0 0%, #fff7e8 52%, #f4f0ff 100%);
+    background: linear-gradient(135deg, #e7fbf4 0%, #dff5ff 52%, #ecf8ff 100%);
 }
 .pastel-calm {
-    background: linear-gradient(135deg, #eef7ff 0%, #f4f2ff 52%, #eef9f3 100%);
+    background: linear-gradient(135deg, #dff3f7 0%, #dcefff 52%, #e5f8ef 100%);
 }
 .pastel-soft {
-    background: linear-gradient(135deg, #f5f1ff 0%, #fff3f6 52%, #f1f8ff 100%);
+    background: linear-gradient(135deg, #e6f5ff 0%, #e8fbf8 52%, #edf4ff 100%);
 }
 .pastel-fresh {
-    background: linear-gradient(135deg, #effaf3 0%, #f2f8ff 52%, #fff8e8 100%);
+    background: linear-gradient(135deg, #dcf8ef 0%, #def2ff 52%, #e9fbf5 100%);
 }
 
 .quote-title {
@@ -172,10 +172,10 @@ EMOTION_RULES = {
     "행복·즐거움": [
         "행복", "기쁜", "기뻐", "즐거", "유쾌", "신나", "쾌활", "살맛",
         "환상적", "기분 좋은", "경쾌", "활기찬", "상쾌", "산뜻",
-        "좋아", "좋다", "해피", "happy", "기분 최고", "최고야"
+        "좋아", "좋다", "해피", "happy", "joy", "glad", "기분 최고", "최고야"
     ],
     "평온·편안": [
-        "편안", "평온", "차분", "안정", "잔잔", "고요", "포근", "홀가분", "괜찮아", "괜찮은 편"
+        "편안", "평온", "차분", "안정", "잔잔", "고요", "포근", "홀가분", "괜찮아", "괜찮은 편", "calm", "peaceful", "relaxed"
     ],
     "감사·감동": [
         "감사", "고마", "감동", "감격", "뭉클", "따뜻", "다정", "애틋"
@@ -731,11 +731,25 @@ def vocative_name(name: str) -> str:
 def natural_reason_clause(reason: str) -> str:
     """
     학생이 적은 이유를 결과 문장에서 자연스러운 원인절로 바꿉니다.
-    지나치게 문장을 재작성하지 않고, 자주 나오는 종결형만 최소 변환합니다.
     """
     r = reason.strip().rstrip(".!? ")
+    if not r:
+        return "특별한 이유를 딱 짚기는 어렵지만"
 
-    # 명사 서술형: "토요일 밤이야" -> "토요일 밤이기 때문에"
+    vague_map = {
+        "그냥": "특별한 이유를 딱 짚기는 어렵지만",
+        "잘 모르겠어": "이유를 딱 짚기 어렵지만",
+        "모르겠어": "이유를 딱 짚기 어렵지만",
+        "모르겠음": "이유를 딱 짚기 어렵지만",
+        "별일 없어": "특별한 일은 없지만",
+        "없어": "특별한 이유는 없지만",
+    }
+    if r in vague_map:
+        return vague_map[r]
+
+    if r.endswith(("해서", "어서", "아서", "니까", "때문에", "라서", "이라서", "여서", "는데")):
+        return r
+
     if r.endswith("이야"):
         return r[:-2] + "이기 때문에"
     if r.endswith("야") and not r.endswith("이야"):
@@ -745,23 +759,15 @@ def natural_reason_clause(reason: str) -> str:
     if r.endswith("였어"):
         return r[:-2] + "여서"
 
-    # 성취/성공 맥락은 '-기 때문에'가 자연스러움
     achievement_words = ["성공했어", "성공했다", "해냈어", "해냈다", "완성했어", "완성했다"]
     if any(r.endswith(x) for x in achievement_words):
-        if r.endswith("성공했어"):
+        if r.endswith("성공했어") or r.endswith("성공했다"):
             return r[:-4] + "성공했기 때문에"
-        if r.endswith("성공했다"):
-            return r[:-4] + "성공했기 때문에"
-        if r.endswith("해냈어"):
+        if r.endswith("해냈어") or r.endswith("해냈다"):
             return r[:-3] + "해냈기 때문에"
-        if r.endswith("해냈다"):
-            return r[:-3] + "해냈기 때문에"
-        if r.endswith("완성했어"):
-            return r[:-4] + "완성했기 때문에"
-        if r.endswith("완성했다"):
+        if r.endswith("완성했어") or r.endswith("완성했다"):
             return r[:-4] + "완성했기 때문에"
 
-    # ~거든 종결형: "만들었거든" -> "만들었기 때문에"
     if r.endswith("했거든"):
         return r[:-4] + "했기 때문에"
     if r.endswith("었거든"):
@@ -769,12 +775,8 @@ def natural_reason_clause(reason: str) -> str:
     if r.endswith("았거든"):
         return r[:-4] + "았기 때문에"
     if r.endswith("거든"):
-        stem = r[:-3]
-        if stem.endswith("했") or stem.endswith("었") or stem.endswith("았"):
-            return stem + "기 때문에"
-        return stem + "기 때문에"
+        return r[:-3] + "기 때문에"
 
-    # 자주 나오는 구어 종결형
     replacements = [
         ("되었어", "되어서"),
         ("됐어", "돼서"),
@@ -790,6 +792,7 @@ def natural_reason_clause(reason: str) -> str:
         ("싫어", "싫어서"),
         ("힘들어", "힘들어서"),
         ("피곤해", "피곤해서"),
+        ("졸려", "졸려서"),
         ("늦었어", "늦어서"),
         ("끝났어", "끝나서"),
         ("못했어", "못해서"),
@@ -803,16 +806,10 @@ def natural_reason_clause(reason: str) -> str:
         ("망쳤어", "망쳐서"),
         ("틀렸어", "틀려서"),
     ]
-
     for ending, converted in replacements:
         if r.endswith(ending):
             return r[:-len(ending)] + converted
 
-    # 이미 원인절이면 그대로
-    if r.endswith(("해서", "어서", "아서", "니까", "때문에", "라서", "이라서", "여서")):
-        return r
-
-    # 명사형/짧은 표현은 '때문에'를 붙여 무리 없이 연결
     return r + " 때문에"
 
 def emotion_phrase_for_result(emotion_label: str, raw_emotion: str = "") -> str:
@@ -820,86 +817,6 @@ def emotion_phrase_for_result(emotion_label: str, raw_emotion: str = "") -> str:
     추가 질문을 한 경우에는 학생이 직접 적은 감정어를 우선 사용하되,
     자연스럽게 '-하구나 / -구나'로 이어질 수 있게 최소한만 다듬습니다.
     """
-    raw = raw_emotion.strip()
-
-    if raw:
-        # 이미 문장형이면 그대로 사용
-        endings = ["해", "해요", "하다", "하네", "하구나", "구나", "야", "이야", "하다"]
-        if any(raw.endswith(e) for e in endings):
-            return raw
-
-        # 공백으로 나열된 감정어: "불안 초조" -> "불안하고 초조해"
-        parts = [p for p in re.split(r"[,\s/]+", raw) if p]
-        if len(parts) >= 2:
-            first = parts[0]
-            second = parts[1]
-            adjective_map_first = {
-                "불안": "불안하고",
-                "초조": "초조하고",
-                "행복": "행복하고",
-                "기쁨": "기쁘고",
-                "즐거움": "즐겁고",
-                "슬픔": "슬프고",
-                "서운": "서운하고",
-                "짜증": "짜증이 나고",
-                "화남": "화가 나고",
-                "우울": "우울하고",
-                "피곤": "피곤하고",
-                "답답": "답답하고",
-                "허무": "허무하고",
-                "허탈": "허탈하고",
-                "평온": "평온하고",
-                "편안": "편안하고",
-                "설렘": "설레고",
-                "기대": "기대되고",
-            }
-            adjective_map_last = {
-                "불안": "불안하구나",
-                "초조": "초조하구나",
-                "행복": "행복하구나",
-                "기쁨": "기쁘구나",
-                "즐거움": "즐겁구나",
-                "슬픔": "슬프구나",
-                "서운": "서운하구나",
-                "짜증": "짜증이 나는구나",
-                "화남": "화가 나는구나",
-                "우울": "우울하구나",
-                "피곤": "피곤하구나",
-                "답답": "답답하구나",
-                "허무": "허무하구나",
-                "허탈": "허탈하구나",
-                "평온": "평온하구나",
-                "편안": "편안하구나",
-                "설렘": "설레는구나",
-                "기대": "기대되는구나",
-            }
-            a = adjective_map_first.get(first, first + "하고")
-            b = adjective_map_last.get(second, second + "하구나")
-            return f"{a} {b}"
-
-        single_map = {
-            "해피": "행복하구나",
-            "happy": "행복하구나",
-            "행복": "행복하구나",
-            "기쁨": "기쁘구나",
-            "즐거움": "즐겁구나",
-            "불안": "불안하구나",
-            "초조": "초조하구나",
-            "우울": "우울하구나",
-            "슬픔": "슬프구나",
-            "서운": "서운하구나",
-            "짜증": "짜증이 나는구나",
-            "피곤": "피곤하구나",
-            "허무": "허무하구나",
-            "허탈": "허탈하구나",
-            "평온": "평온하구나",
-            "편안": "편안하구나",
-            "설렘": "설레는구나",
-            "기대": "기대되는구나",
-        }
-        return single_map.get(raw.lower(), f"{raw}하구나")
-
-    # 추가 질문이 없을 때는 분류 라벨을 자연스러운 표현으로
     label_map = {
         "행복·즐거움": "행복하고 즐겁구나",
         "평온·편안": "평온하고 편안하구나",
@@ -921,7 +838,99 @@ def emotion_phrase_for_result(emotion_label: str, raw_emotion: str = "") -> str:
         "억울·모욕": "억울하고 마음이 상했구나",
         "후회·아쉬움": "아쉽고 후회되는구나",
     }
-    return label_map.get(emotion_label, "그런 마음이 드는구나")
+
+    raw = raw_emotion.strip()
+    if not raw:
+        return label_map.get(emotion_label, "그런 마음이 드는구나")
+
+    endings = ["해", "해요", "하다", "하네", "하구나", "구나", "야", "이야"]
+    if any(raw.endswith(e) for e in endings):
+        return raw
+
+    parts = [normalize_raw_emotion_word(p) for p in re.split(r"[,\s/]+", raw) if p]
+    if len(parts) >= 2:
+        first = parts[0]
+        second = parts[1]
+        adjective_map_first = {
+            "불안": "불안하고",
+            "초조": "초조하고",
+            "행복": "행복하고",
+            "기쁨": "기쁘고",
+            "뿌듯": "뿌듯하고",
+            "자신감": "자신감이 생기고",
+            "즐거움": "즐겁고",
+            "슬픔": "슬프고",
+            "서운": "서운하고",
+            "짜증": "짜증이 나고",
+            "화남": "화가 나고",
+            "우울": "우울하고",
+            "피곤": "피곤하고",
+            "졸림": "졸리고",
+            "답답": "답답하고",
+            "허무": "허무하고",
+            "허탈": "허탈하고",
+            "평온": "평온하고",
+            "편안": "편안하고",
+            "설렘": "설레고",
+            "기대": "기대되고",
+            "감사": "고맙고",
+            "감동": "마음이 따뜻해지고",
+        }
+        adjective_map_last = {
+            "불안": "불안하구나",
+            "초조": "초조하구나",
+            "행복": "행복하구나",
+            "기쁨": "기쁘구나",
+            "뿌듯": "뿌듯하구나",
+            "자신감": "자신감이 생기는구나",
+            "즐거움": "즐겁구나",
+            "슬픔": "슬프구나",
+            "서운": "서운하구나",
+            "짜증": "짜증이 나는구나",
+            "화남": "화가 나는구나",
+            "우울": "우울하구나",
+            "피곤": "피곤하구나",
+            "졸림": "졸리구나",
+            "답답": "답답하구나",
+            "허무": "허무하구나",
+            "허탈": "허탈하구나",
+            "평온": "평온하구나",
+            "편안": "편안하구나",
+            "설렘": "설레는구나",
+            "기대": "기대되는구나",
+            "감사": "고맙구나",
+            "감동": "마음이 따뜻하구나",
+        }
+        a = adjective_map_first.get(first, first + "하고")
+        b = adjective_map_last.get(second, second + "하구나")
+        return f"{a} {b}"
+
+    single = parts[0]
+    single_map = {
+        "해피": "행복하구나",
+        "행복": "행복하구나",
+        "기쁨": "기쁘구나",
+        "뿌듯": "뿌듯하구나",
+        "자신감": "자신감이 생기는구나",
+        "즐거움": "즐겁구나",
+        "불안": "불안하구나",
+        "초조": "초조하구나",
+        "우울": "우울하구나",
+        "슬픔": "슬프구나",
+        "서운": "서운하구나",
+        "짜증": "짜증이 나는구나",
+        "피곤": "피곤하구나",
+        "졸림": "졸리구나",
+        "허무": "허무하구나",
+        "허탈": "허탈하구나",
+        "평온": "평온하구나",
+        "편안": "편안하구나",
+        "설렘": "설레는구나",
+        "기대": "기대되는구나",
+        "감사": "고맙구나",
+        "감동": "마음이 따뜻하구나",
+    }
+    return single_map.get(single, label_map.get(emotion_label, "그런 마음이 드는구나"))
 
 def pastel_class(emotion: str):
     if emotion in ["행복·즐거움", "감사·감동", "기대·설렘", "만족·자신감"]:
@@ -1055,14 +1064,14 @@ if "page" not in st.session_state:
     st.session_state.page = "input"
 
 if st.session_state.page == "input":
-    st.title("How’s Your Heart Today? 🌿")
-    st.write("네 마음을 천천히 적어 줘. 오늘의 마음에 어울리는 문장 하나를 골라 줄게.")
+    st.title("오늘 체크인 🌿")
+    st.markdown("네 마음을 천천히 적어줘.  \n오늘의 마음에 어울리는 문장 하나를 골라 줄게.")
 
     if "needs_clarification" not in st.session_state:
         st.session_state.needs_clarification = False
 
     with st.form("morning_checkin"):
-        name = st.text_input("1. 저는 (      )입니다. 이름을 써줘.", key="name_input")
+        name = st.text_input("1. 이름이 뭐야?", key="name_input")
         mood = st.text_area("2. 지금 기분은 어떠니?", height=90, key="mood_input")
 
         clarified_emotion = ""
@@ -1078,13 +1087,13 @@ if st.session_state.page == "input":
                 key="clarified_emotion_input",
             )
 
-        reason = st.text_area("3. 왜 그런 것 같아?", height=105, key="reason_input")
+        reason = st.text_area("3. 오늘 어떤 일이 있었어?", height=105, key="reason_input")
         wish = st.text_area("4. 바라는 것이 있어?", height=105, key="wish_input")
 
         button_label = (
-            "감정 적고 오늘의 문장 받기"
+            "감정 적고 결과 보기"
             if st.session_state.needs_clarification
-            else "오늘의 문장 받기"
+            else "결과 보기"
         )
 
         submitted = st.form_submit_button(
@@ -1140,7 +1149,7 @@ else:
     )
     card_class = pastel_class(result["emotion"])
 
-    st.title("오늘의 문장 🌿")
+    st.title("오늘 체크인 🌿")
 
     result_sentence = (
         f"{natural_reason_clause(result['reason'])} "
@@ -1166,7 +1175,7 @@ else:
         f"""
         <div class="quote-card {card_class}">
             <div class="quote-inner">
-                <div class="quote-title">{result['name']}에게 오늘 건네는 한 문장</div>
+                <div class="quote-title">오늘 {result['name']}에게 건네는 한 문장</div>
                 <div class="quote-text">“{q['text']}”</div>
                 <div class="quote-meta">— {q['author']}</div>
             </div>
