@@ -3,7 +3,7 @@ import re
 import streamlit as st
 
 st.set_page_config(
-    page_title="오늘 건네는 한 문장",
+    page_title="How’s Your Heart Today?",
     page_icon="🌿",
     layout="centered",
 )
@@ -24,17 +24,17 @@ html, body, [class*="css"], .stApp {
 
 .result-box {
     position: relative;
-    padding: 1.65rem 1.55rem 1.5rem 1.55rem;
+    padding: 1.55rem 1.55rem 1.45rem 1.55rem;
     border-radius: 22px;
     margin-top: 1.1rem;
     background:
-        linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,252,246,0.97)),
+        linear-gradient(180deg, rgba(255,255,255,0.97), rgba(255,252,246,0.985)),
         repeating-linear-gradient(
             180deg,
             rgba(0,0,0,0) 0px,
-            rgba(0,0,0,0) 31px,
-            rgba(191, 182, 168, 0.20) 32px,
-            rgba(0,0,0,0) 33px
+            rgba(0,0,0,0) 28px,
+            rgba(188, 180, 168, 0.28) 29px,
+            rgba(0,0,0,0) 30px
         );
     border: 1px solid rgba(191, 178, 160, 0.45);
     box-shadow: 0 5px 20px rgba(40, 40, 40, 0.06);
@@ -47,62 +47,68 @@ html, body, [class*="css"], .stApp {
     top: 14px;
     bottom: 14px;
     width: 2px;
-    background: linear-gradient(180deg, rgba(212, 128, 128, 0.20), rgba(212, 128, 128, 0.08));
+    background: linear-gradient(180deg, rgba(212, 128, 128, 0.18), rgba(212, 128, 128, 0.08));
     border-radius: 3px;
 }
 .letter-stamp {
     position: absolute;
-    top: 16px;
+    top: 14px;
     right: 18px;
-    width: 64px;
-    height: 78px;
-    background: linear-gradient(180deg, rgba(249,239,227,0.95), rgba(245,234,220,0.96));
-    border: 2px dashed rgba(176, 146, 118, 0.50);
+    width: 86px;
+    height: 102px;
     border-radius: 10px;
-    transform: rotate(6deg);
-    box-shadow: 0 3px 10px rgba(80, 60, 40, 0.07);
+    transform: rotate(5deg);
+    background: linear-gradient(180deg, rgba(248,238,224,0.98), rgba(244,232,216,0.97));
+    box-shadow: 0 4px 14px rgba(90, 70, 50, 0.08);
+    border: 2px solid rgba(198, 176, 150, 0.65);
+    outline: 1px dashed rgba(170, 146, 120, 0.55);
+    outline-offset: -7px;
 }
 .letter-stamp::before {
-    content: "✿";
+    content: "";
     position: absolute;
-    left: 50%;
-    top: 18px;
-    transform: translateX(-50%);
-    font-size: 1.2rem;
-    color: rgba(170, 132, 104, 0.75);
+    inset: 16px 15px 34px 15px;
+    border-radius: 6px;
+    background:
+        linear-gradient(180deg, rgba(224, 205, 183, 0.30), rgba(224, 205, 183, 0.10)),
+        radial-gradient(circle at 70% 28%, rgba(239,198,129,0.95) 0 10px, transparent 11px),
+        linear-gradient(180deg, rgba(181, 205, 214, 0.55) 0 45%, rgba(167, 196, 165, 0.58) 45% 100%);
+    border: 1px solid rgba(170, 144, 118, 0.34);
 }
 .letter-stamp::after {
     content: "";
     position: absolute;
-    left: 11px;
-    bottom: 14px;
-    width: 40px;
-    height: 18px;
-    border-top: 1.5px solid rgba(173, 142, 115, 0.35);
-    border-bottom: 1.5px solid rgba(173, 142, 115, 0.35);
-    border-radius: 50%;
+    left: -10px;
+    top: 18px;
+    width: 112px;
+    height: 66px;
+    background:
+        radial-gradient(circle at 32px 28px, transparent 0 15px, rgba(120, 103, 88, 0.48) 15.5px 17px, transparent 17.5px),
+        linear-gradient(transparent 0 26px, rgba(120, 103, 88, 0.38) 26px 28px, transparent 28px 36px, rgba(120, 103, 88, 0.38) 36px 38px, transparent 38px 46px, rgba(120, 103, 88, 0.38) 46px 48px, transparent 48px);
+    transform: rotate(-7deg);
+    opacity: 0.9;
 }
 .letter-body {
     padding-left: 0.95rem;
-    padding-right: 4.2rem;
+    padding-right: 5.8rem;
     font-family: 'Single Day', 'Gowun Dodum', sans-serif;
-    font-size: 1.4rem;
-    line-height: 1.8;
+    font-size: 1.32rem;
+    line-height: 1.78;
     color: #4b4038;
     letter-spacing: 0.01em;
     word-break: keep-all;
 }
 .letter-greeting {
     display: block;
-    margin-bottom: 0.15rem;
+    margin-bottom: 0.2rem;
 }
 .letter-body strong {
     font-weight: 700;
 }
 .quote-card {
     position: relative;
-    padding: 2.5rem 1.85rem 1.9rem 1.85rem;
-    margin-top: 1.4rem;
+    padding: 2.7rem 1.9rem 1.95rem 1.9rem;
+    margin-top: 1.45rem;
     box-shadow: 0 6px 24px rgba(40, 40, 40, 0.07);
     border: 1px solid rgba(201, 186, 169, 0.45);
     overflow: hidden;
@@ -116,66 +122,85 @@ html, body, [class*="css"], .stApp {
 .quote-card::before {
     content: "";
     position: absolute;
-    left: 50%;
-    top: 0;
-    width: 12px;
-    height: 54%;
-    transform: translateX(-50%);
-    background: linear-gradient(180deg, rgba(182,150,107,0.88), rgba(230,214,190,0.98), rgba(182,150,107,0.86));
-    box-shadow: inset 0 0 4px rgba(255,255,255,0.55);
-    z-index: 2;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.08), transparent 18%, transparent 82%, rgba(255,255,255,0.08));
+    pointer-events: none;
 }
 .quote-card::after {
     content: "";
     position: absolute;
-    left: calc(50% - 1px);
-    top: 16px;
-    width: 2px;
-    height: 46%;
-    background: rgba(255,255,255,0.55);
-    opacity: 0.55;
-    z-index: 3;
+    inset: 7px;
+    clip-path: polygon(
+        10px 0%, calc(100% - 10px) 0%,
+        100% 10px, 100% calc(100% - 10px),
+        calc(100% - 10px) 100%, 10px 100%,
+        0% calc(100% - 10px), 0% 10px
+    );
+    border: 1px solid rgba(255,255,255,0.38);
+    pointer-events: none;
 }
 .ribbon-knot {
     position: absolute;
-    top: 12px;
+    top: 8px;
     left: 50%;
-    width: 26px;
-    height: 26px;
+    width: 24px;
+    height: 24px;
     transform: translateX(-50%) rotate(45deg);
-    background: linear-gradient(135deg, rgba(193,164,123,0.94), rgba(240,228,205,0.98));
-    border-radius: 6px;
+    background: linear-gradient(135deg, rgba(190,159,118,0.98), rgba(245,233,205,1));
+    border-radius: 5px;
     box-shadow: 0 2px 8px rgba(100, 80, 60, 0.12);
-    z-index: 4;
+    z-index: 6;
+}
+.ribbon-loop-left,
+.ribbon-loop-right {
+    position: absolute;
+    top: 4px;
+    width: 62px;
+    height: 34px;
+    border: 3px solid rgba(193,160,116,0.9);
+    border-radius: 60px 60px 48px 48px;
+    background: linear-gradient(180deg, rgba(251,243,226,0.68), rgba(224,201,166,0.32));
+    box-shadow: inset 0 0 8px rgba(255,255,255,0.45);
+    z-index: 5;
+}
+.ribbon-loop-left {
+    left: calc(50% - 72px);
+    transform: rotate(-9deg);
+}
+.ribbon-loop-right {
+    left: calc(50% + 10px);
+    transform: rotate(9deg);
 }
 .ribbon-tail-left,
 .ribbon-tail-right {
     position: absolute;
-    top: 31px;
-    width: 120px;
-    height: 44px;
-    border-top: 3px solid rgba(191,160,118,0.82);
-    border-radius: 0 0 100px 100px;
-    z-index: 3;
-    opacity: 0.9;
-    filter: drop-shadow(0 1px 2px rgba(255,255,255,0.28));
+    top: 23px;
+    height: 110px;
+    width: calc(50% - 36px);
+    z-index: 4;
+    opacity: 0.95;
+    filter: drop-shadow(0 1px 2px rgba(255,255,255,0.25));
 }
 .ribbon-tail-left {
-    right: 50%;
-    margin-right: 13px;
-    border-left: 0;
-    transform: rotate(10deg);
+    left: 18px;
+    border-top: 3px solid rgba(193,160,116,0.88);
+    border-left: 3px solid rgba(193,160,116,0.88);
+    border-top-left-radius: 120px 42px;
+    border-bottom-left-radius: 28px 78px;
+    border-top-right-radius: 120px 50px;
 }
 .ribbon-tail-right {
-    left: 50%;
-    margin-left: 13px;
-    border-right: 0;
-    transform: rotate(-10deg);
+    right: 18px;
+    border-top: 3px solid rgba(193,160,116,0.88);
+    border-right: 3px solid rgba(193,160,116,0.88);
+    border-top-right-radius: 120px 42px;
+    border-bottom-right-radius: 28px 78px;
+    border-top-left-radius: 120px 50px;
 }
 .quote-inner {
     position: relative;
-    z-index: 5;
-    margin-top: 1.15rem;
+    z-index: 7;
+    margin-top: 1.55rem;
 }
 
 .pastel-warm {
@@ -1125,7 +1150,7 @@ if "page" not in st.session_state:
     st.session_state.page = "input"
 
 if st.session_state.page == "input":
-    st.title("오늘 건네는 한 문장 🌿")
+    st.title("How’s Your Heart Today? 🌿")
     st.write("네 마음을 천천히 적어 줘. 오늘의 마음에 어울리는 문장 하나를 골라 줄게.")
 
     if "needs_clarification" not in st.session_state:
@@ -1236,6 +1261,8 @@ else:
     st.markdown(
         f"""
         <div class="quote-card {card_class}">
+            <div class="ribbon-loop-left"></div>
+            <div class="ribbon-loop-right"></div>
             <div class="ribbon-knot"></div>
             <div class="ribbon-tail-left"></div>
             <div class="ribbon-tail-right"></div>
