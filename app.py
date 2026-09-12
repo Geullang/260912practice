@@ -64,7 +64,10 @@ html, body, [class*="css"], .stApp {
 }
 .letter-greeting {
     display: block;
-    margin-bottom: 0.28rem;
+    margin-bottom: 0.42rem;
+}
+.letter-message {
+    display: block;
 }
 .letter-body strong {
     font-weight: 700;
@@ -153,6 +156,21 @@ html, body, [class*="css"], .stApp {
     font-size: 0.88rem;
     opacity: 0.68;
     margin-top: 1rem;
+}
+
+div[data-testid="stButton"] button[kind="primary"] {
+    background: linear-gradient(135deg, #4f9188 0%, #4e7fa5 100%);
+    color: white;
+    border: none;
+    border-radius: 999px;
+    min-height: 2.55rem;
+    padding: 0.45rem 0.95rem;
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgba(55, 103, 120, 0.20);
+}
+div[data-testid="stButton"] button[kind="primary"]:hover {
+    filter: brightness(0.96);
+    transform: translateY(-1px);
 }
 
 div[data-testid="stTextInput"] input,
@@ -470,6 +488,16 @@ SPECIAL_QUOTE_RULES = [
             "가장 용감한 사람도 잠시 더듬으며 걷는다."
         ]
     },
+    {
+        "emotion": None,
+        "context": "신체불편",
+        "preferred": [
+            "서두를 필요도, 빛나 보일 필요도, 자기 아닌 다른 사람이 될 필요도 없다.",
+            "회오리바람도 아침 내내 불지는 않고, 소나기도 하루 종일 내리지는 않는다.",
+            "제비 한 마리가 여름을 만들지 않듯, 하루가 한 사람의 삶 전체를 결정하지 않는다.",
+            "절뚝이며 가더라도 뒤로 가는 것은 아니다."
+        ]
+    },
 ]
 
 def normalize(text: str) -> str:
@@ -579,22 +607,38 @@ def has_explicit_emotion(text: str) -> bool:
 
     return False
 
-def needs_emotion_clarification(text: str) -> bool:
-    t = normalize(text)
+NON_EMOTION_STATE_PATTERNS = [
+    "피곤", "졸려", "졸림", "배고파", "배불러", "아파", "아픔",
+    "체했", "체해서", "속이 안 좋", "소화가 안", "머리 아파", "두통",
+    "춥", "덥", "목말라", "어지러", "몸이 무거", "컨디션",
+]
 
-    # 감정어가 직접 있으면 다시 묻지 않음
+AMBIGUOUS_BODY_MOOD_PATTERNS = [
+    "답답", "무거워", "무겁다",
+]
+
+def needs_emotion_clarification(text: str, reason_text: str = "") -> bool:
+    """
+    감정이 아닌 상태·사건이면 감정어를 한 번 더 묻습니다.
+    신체/감정 양쪽으로 쓰이는 말은 이유가 신체불편일 때 재확인합니다.
+    """
+    t = normalize(text)
+    context = detect_context(reason_text) if reason_text else None
+
+    if any(p in t for p in NON_EMOTION_STATE_PATTERNS):
+        return True
+
+    if context == "신체불편" and any(p in t for p in AMBIGUOUS_BODY_MOOD_PATTERNS):
+        return True
+
     if has_explicit_emotion(t):
         return False
 
-    # 대표적인 모호 표현
     if any(pattern in t for pattern in AMBIGUOUS_MOOD_PATTERNS):
         return True
 
-    # 너무 짧고 감정 정보가 거의 없는 응답도 한 번 더 확인
-    if len(t) <= 6:
-        return True
-
-    return False
+    # 감정어가 없으면 길이에 상관없이 다시 확인
+    return True
 
 def detect_emotion(mood_text: str, reason_text: str):
     mood = normalize(mood_text)
@@ -842,11 +886,73 @@ def natural_reason_clause(reason: str) -> str:
 
     return r + " 때문에"
 
+ENGLISH_EMOTION_ALIASES = {
+    "joy": "기쁨",
+    "happy": "행복",
+    "happiness": "행복",
+    "glad": "기쁨",
+    "excited": "설렘",
+    "calm": "평온",
+    "peaceful": "편안",
+    "relaxed": "편안",
+    "proud": "뿌듯",
+    "confident": "자신감",
+    "grateful": "감사",
+    "sad": "슬픔",
+    "anxious": "불안",
+    "nervous": "초조",
+    "worried": "걱정",
+    "angry": "화남",
+    "annoyed": "짜증",
+    "tired": "피곤",
+    "sleepy": "졸림",
+    "lonely": "외로움",
+    "empty": "허무",
+}
+
+def normalize_raw_emotion_word(word: str) -> str:
+    w = word.strip().lower()
+
+    phrase_aliases = {
+        "답답해": "답답",
+        "답답하다": "답답",
+        "피곤해": "피곤",
+        "피곤하다": "피곤",
+        "졸려": "졸림",
+        "졸리다": "졸림",
+        "불안해": "불안",
+        "불안하다": "불안",
+        "초조해": "초조",
+        "초조하다": "초조",
+        "우울해": "우울",
+        "우울하다": "우울",
+        "행복해": "행복",
+        "행복하다": "행복",
+        "기뻐": "기쁨",
+        "기쁘다": "기쁨",
+        "뿌듯해": "뿌듯",
+        "뿌듯하다": "뿌듯",
+        "편안해": "편안",
+        "편안하다": "편안",
+        "평온해": "평온",
+        "평온하다": "평온",
+        "서운해": "서운",
+        "서운하다": "서운",
+        "슬퍼": "슬픔",
+        "슬프다": "슬픔",
+        "짜증나": "짜증",
+        "화나": "화남",
+        "화가 나": "화남",
+        "설레": "설렘",
+        "설렌다": "설렘",
+    }
+    if w in phrase_aliases:
+        return phrase_aliases[w]
+
+    return ENGLISH_EMOTION_ALIASES.get(w, word.strip())
+
+
 def emotion_phrase_for_result(emotion_label: str, raw_emotion: str = "") -> str:
-    """
-    추가 질문을 한 경우에는 학생이 직접 적은 감정어를 우선 사용하되,
-    자연스럽게 '-하구나 / -구나'로 이어질 수 있게 최소한만 다듬습니다.
-    """
     label_map = {
         "행복·즐거움": "행복하고 즐겁구나",
         "평온·편안": "평온하고 편안하구나",
@@ -873,92 +979,44 @@ def emotion_phrase_for_result(emotion_label: str, raw_emotion: str = "") -> str:
     if not raw:
         return label_map.get(emotion_label, "그런 마음이 드는구나")
 
-    endings = ["해", "해요", "하다", "하네", "하구나", "구나", "야", "이야"]
-    if any(raw.endswith(e) for e in endings):
-        return raw
+    whole = normalize_raw_emotion_word(raw)
+    raw = whole
 
     parts = [normalize_raw_emotion_word(p) for p in re.split(r"[,\s/]+", raw) if p]
     if len(parts) >= 2:
-        first = parts[0]
-        second = parts[1]
-        adjective_map_first = {
-            "불안": "불안하고",
-            "초조": "초조하고",
-            "행복": "행복하고",
-            "기쁨": "기쁘고",
-            "뿌듯": "뿌듯하고",
-            "자신감": "자신감이 생기고",
-            "즐거움": "즐겁고",
-            "슬픔": "슬프고",
-            "서운": "서운하고",
-            "짜증": "짜증이 나고",
-            "화남": "화가 나고",
-            "우울": "우울하고",
-            "피곤": "피곤하고",
-            "졸림": "졸리고",
-            "답답": "답답하고",
-            "허무": "허무하고",
-            "허탈": "허탈하고",
-            "평온": "평온하고",
-            "편안": "편안하고",
-            "설렘": "설레고",
-            "기대": "기대되고",
+        first, second = parts[0], parts[1]
+        first_map = {
+            "불안": "불안하고", "초조": "초조하고", "행복": "행복하고",
+            "기쁨": "기쁘고", "뿌듯": "뿌듯하고", "자신감": "자신감이 생기고",
+            "즐거움": "즐겁고", "슬픔": "슬프고", "서운": "서운하고",
+            "짜증": "짜증이 나고", "화남": "화가 나고", "우울": "우울하고",
+            "피곤": "피곤하고", "졸림": "졸리고", "답답": "답답하고",
+            "허무": "허무하고", "허탈": "허탈하고", "평온": "평온하고",
+            "편안": "편안하고", "설렘": "설레고", "기대": "기대되고",
             "감사": "고맙고",
-            "감동": "마음이 따뜻해지고",
         }
-        adjective_map_last = {
-            "불안": "불안하구나",
-            "초조": "초조하구나",
-            "행복": "행복하구나",
-            "기쁨": "기쁘구나",
-            "뿌듯": "뿌듯하구나",
-            "자신감": "자신감이 생기는구나",
-            "즐거움": "즐겁구나",
-            "슬픔": "슬프구나",
-            "서운": "서운하구나",
-            "짜증": "짜증이 나는구나",
-            "화남": "화가 나는구나",
-            "우울": "우울하구나",
-            "피곤": "피곤하구나",
-            "졸림": "졸리구나",
-            "답답": "답답하구나",
-            "허무": "허무하구나",
-            "허탈": "허탈하구나",
-            "평온": "평온하구나",
-            "편안": "편안하구나",
-            "설렘": "설레는구나",
-            "기대": "기대되는구나",
+        last_map = {
+            "불안": "불안하구나", "초조": "초조하구나", "행복": "행복하구나",
+            "기쁨": "기쁘구나", "뿌듯": "뿌듯하구나", "자신감": "자신감이 생기는구나",
+            "즐거움": "즐겁구나", "슬픔": "슬프구나", "서운": "서운하구나",
+            "짜증": "짜증이 나는구나", "화남": "화가 나는구나", "우울": "우울하구나",
+            "피곤": "피곤하구나", "졸림": "졸리구나", "답답": "답답하구나",
+            "허무": "허무하구나", "허탈": "허탈하구나", "평온": "평온하구나",
+            "편안": "편안하구나", "설렘": "설레는구나", "기대": "기대되는구나",
             "감사": "고맙구나",
-            "감동": "마음이 따뜻하구나",
         }
-        a = adjective_map_first.get(first, first + "하고")
-        b = adjective_map_last.get(second, second + "하구나")
-        return f"{a} {b}"
+        return f"{first_map.get(first, first + '하고')} {last_map.get(second, second + '하구나')}"
 
     single = parts[0]
     single_map = {
-        "해피": "행복하구나",
-        "행복": "행복하구나",
-        "기쁨": "기쁘구나",
-        "뿌듯": "뿌듯하구나",
-        "자신감": "자신감이 생기는구나",
-        "즐거움": "즐겁구나",
-        "불안": "불안하구나",
-        "초조": "초조하구나",
-        "우울": "우울하구나",
-        "슬픔": "슬프구나",
-        "서운": "서운하구나",
-        "짜증": "짜증이 나는구나",
-        "피곤": "피곤하구나",
-        "졸림": "졸리구나",
-        "허무": "허무하구나",
-        "허탈": "허탈하구나",
-        "평온": "평온하구나",
-        "편안": "편안하구나",
-        "설렘": "설레는구나",
-        "기대": "기대되는구나",
-        "감사": "고맙구나",
-        "감동": "마음이 따뜻하구나",
+        "행복": "행복하구나", "기쁨": "기쁘구나", "뿌듯": "뿌듯하구나",
+        "자신감": "자신감이 생기는구나", "즐거움": "즐겁구나",
+        "불안": "불안하구나", "초조": "초조하구나", "우울": "우울하구나",
+        "슬픔": "슬프구나", "서운": "서운하구나", "짜증": "짜증이 나는구나",
+        "화남": "화가 나는구나", "피곤": "피곤하구나", "졸림": "졸리구나",
+        "답답": "답답하구나", "허무": "허무하구나", "허탈": "허탈하구나",
+        "평온": "평온하구나", "편안": "편안하구나", "설렘": "설레는구나",
+        "기대": "기대되는구나", "감사": "고맙구나",
     }
     return single_map.get(single, label_map.get(emotion_label, "그런 마음이 드는구나"))
 
@@ -1002,6 +1060,12 @@ def choose_second_quote(mood: str, reason: str, wish: str, first_idx: int) -> in
     return first_idx
 
 def build_support_message(emotion, context, wish):
+    if context == "신체불편":
+        return (
+            "몸이 불편하면 기분까지 가라앉거나 답답해질 수 있어. 지금은 무리해서 평소처럼 하려고 하기보다 몸이 보내는 신호를 먼저 살펴도 괜찮아.",
+            "몸이 편하지 않은 날에는 스스로를 몰아붙이기보다 잠시 쉬어 가도 괜찮다는 뜻이 담겨 있어서",
+        )
+
     if emotion == "저조·허탈":
         if context == "하루성과없음":
             return (
@@ -1137,8 +1201,8 @@ if st.session_state.page == "input":
         clarified_emotion = ""
         if st.session_state.needs_clarification:
             st.markdown(
-                '<div class="clarify-note">감정으로 표현한다면 어떤 단어가 떠오르나요?</div>'
-                '<div class="clarify-sub">한두 단어로 적어줘.</div>',
+                '<div class="clarify-note">지금 감정을 한두 단어로 표현한다면 뭐라고 할 수 있을까?</div>'
+                '<div class="clarify-sub">예: 답답함, 불안, 속상함, 편안함, 뿌듯함</div>',
                 unsafe_allow_html=True,
             )
             clarified_emotion = st.text_input(
@@ -1147,7 +1211,7 @@ if st.session_state.page == "input":
                 key="clarified_emotion_input",
             )
 
-        reason = st.text_area("3. 오늘 어떤 일이 있었어?", height=105, key="reason_input")
+        reason = st.text_area("3. 지금 그런 기분이 드는 이유가 있어?", height=105, key="reason_input")
         wish = st.text_area("4. 바라는 것이 있어?", height=105, key="wish_input")
 
         button_label = (
@@ -1165,7 +1229,7 @@ if st.session_state.page == "input":
     if submitted:
         if not all([name.strip(), mood.strip(), reason.strip(), wish.strip()]):
             st.warning("네 가지 질문에 모두 답해 줘.")
-        elif not st.session_state.needs_clarification and needs_emotion_clarification(mood):
+        elif not st.session_state.needs_clarification and needs_emotion_clarification(mood, reason):
             st.session_state.needs_clarification = True
             st.rerun()
         elif st.session_state.needs_clarification and not clarified_emotion.strip():
@@ -1215,9 +1279,13 @@ else:
 
     st.title("오늘 체크인 🌿")
 
+    emotion_sentence = emotion_phrase_for_result(
+        result["emotion"], result.get("clarified_emotion", "")
+    ).rstrip(".!? ")
+
     result_sentence = (
         f"{natural_reason_clause(result['reason'])} "
-        f"{emotion_phrase_for_result(result['emotion'], result.get('clarified_emotion', ''))} "
+        f"{emotion_sentence}. "
         f"{comfort} "
         f"네가 바라는 것이 이루어지기를 바라. "
         f"그래서 오늘은 {reason_for_quote} 이 문장을 골랐어."
@@ -1228,7 +1296,7 @@ else:
         <div class="result-box">
             <div class="letter-body">
                 <span class="letter-greeting">{call_name}.</span>
-                {result_sentence}
+                <div class="letter-message">{result_sentence}</div>
             </div>
         </div>
         """,
@@ -1249,14 +1317,16 @@ else:
     )
 
     if "second_quote_idx" not in st.session_state:
-        if st.button("하나 더 선물할게", use_container_width=True):
-            st.session_state.second_quote_idx = choose_second_quote(
-                result["analysis_mood"],
-                result["reason"],
-                result["wish"],
-                result["chosen_idx"],
-            )
-            st.rerun()
+        left, center, right = st.columns([1.35, 1.3, 1.35])
+        with center:
+            if st.button("하나 더 선물할게", type="primary", use_container_width=True):
+                st.session_state.second_quote_idx = choose_second_quote(
+                    result["analysis_mood"],
+                    result["reason"],
+                    result["wish"],
+                    result["chosen_idx"],
+                )
+                st.rerun()
     else:
         q2 = QUOTES[st.session_state.second_quote_idx]
         st.markdown(
