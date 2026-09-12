@@ -10,7 +10,7 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Nanum+Pen+Script&display=swap');
 
 html, body, [class*="css"], .stApp {
     font-family: 'Gowun Dodum', 'Malgun Gothic', sans-serif;
@@ -23,20 +23,108 @@ html, body, [class*="css"], .stApp {
 }
 
 .result-box {
-    padding: 1.55rem 1.4rem;
+    position: relative;
+    padding: 1.7rem 1.55rem;
     border-radius: 24px;
-    background: #fbfaf7;
     margin-top: 1.1rem;
-    line-height: 2.05;
-    font-size: 1.08rem;
-    box-shadow: 0 3px 14px rgba(40, 40, 40, 0.05);
-}
-
-.quote-card {
-    padding: 2rem 1.75rem;
-    border-radius: 26px;
-    margin-top: 1.35rem;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,253,248,0.95)),
+        repeating-linear-gradient(
+            180deg,
+            rgba(0,0,0,0) 0px,
+            rgba(0,0,0,0) 32px,
+            rgba(208, 198, 183, 0.22) 33px,
+            rgba(0,0,0,0) 34px
+        );
+    border: 1px solid rgba(188, 173, 153, 0.45);
     box-shadow: 0 5px 20px rgba(40, 40, 40, 0.06);
+}
+.result-box::before {
+    content: "";
+    position: absolute;
+    left: 18px;
+    top: 16px;
+    bottom: 16px;
+    width: 2px;
+    background: linear-gradient(180deg, rgba(209, 120, 120, 0.20), rgba(209, 120, 120, 0.08));
+    border-radius: 3px;
+}
+.letter-body {
+    padding-left: 0.9rem;
+    font-family: 'Nanum Pen Script', 'Gowun Dodum', sans-serif;
+    font-size: 1.7rem;
+    line-height: 1.72;
+    color: #4b4038;
+    letter-spacing: 0.01em;
+}
+.letter-body strong {
+    font-weight: 700;
+}
+.quote-card {
+    position: relative;
+    padding: 2.25rem 1.75rem 1.8rem 1.75rem;
+    border-radius: 28px;
+    margin-top: 1.35rem;
+    box-shadow: 0 6px 24px rgba(40, 40, 40, 0.07);
+    border: 1px solid rgba(176, 150, 124, 0.30);
+    overflow: hidden;
+}
+.quote-card::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 22px;
+    height: 20px;
+    background: linear-gradient(90deg, rgba(173,141,112,0.14), rgba(198,166,137,0.24), rgba(173,141,112,0.14));
+}
+.quote-card::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 18px;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg, rgba(173,141,112,0.12), rgba(198,166,137,0.22), rgba(173,141,112,0.12));
+}
+.ribbon-knot {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translateX(-50%) rotate(45deg);
+    background: linear-gradient(135deg, rgba(191,164,137,0.60), rgba(225,208,190,0.90));
+    border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(100, 80, 60, 0.10);
+    z-index: 2;
+}
+.ribbon-knot::before,
+.ribbon-knot::after {
+    content: "";
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-top: 2px solid rgba(141,112,85,0.35);
+    border-left: 2px solid rgba(141,112,85,0.35);
+    border-radius: 4px;
+    background: rgba(255,255,255,0.16);
+}
+.ribbon-knot::before {
+    top: 3px;
+    left: -7px;
+    transform: rotate(-35deg);
+}
+.ribbon-knot::after {
+    top: -7px;
+    left: 3px;
+    transform: rotate(125deg);
+}
+.quote-inner {
+    position: relative;
+    z-index: 3;
+    margin-top: 1.0rem;
 }
 
 .pastel-warm {
@@ -53,19 +141,22 @@ html, body, [class*="css"], .stApp {
 }
 
 .quote-title {
-    font-size: 1.08rem;
+    font-size: 1.03rem;
     font-weight: 700;
-    margin-bottom: 1.1rem;
+    margin-bottom: 1.15rem;
+    color: #5a4a3f;
 }
 .quote-text {
-    font-size: 1.55rem;
-    line-height: 1.9;
+    font-size: 1.5rem;
+    line-height: 1.82;
     font-weight: 700;
     margin-bottom: 1rem;
+    color: #43362d;
 }
 .quote-meta {
     font-size: 0.96rem;
-    opacity: 0.78;
+    opacity: 0.82;
+    color: #5c5148;
 }
 
 .clarify-note {
@@ -614,16 +705,38 @@ def choose_quote(mood_text: str, reason_text: str, wish_text: str):
     ]
     scored.sort(key=lambda item: (-item[0], item[1]))
 
+    # 적합성은 유지하되 후보 폭은 이전보다 넓힘.
+    # 최고점에서 12점 이내, 최대 12개를 후보로 둠.
     best_score = scored[0][0]
-    pool = [idx for score, idx in scored if score >= best_score - 8][:6]
+    candidate_pool = [
+        (score, idx)
+        for score, idx in scored
+        if score >= best_score - 12
+    ][:12]
 
+    # 같은 세션에서 이미 나온 문장에는 감점을 주어
+    # 100개 문장 중 더 다양한 문장이 순환하도록 함.
+    usage = st.session_state.get("quote_usage", {})
     recent = st.session_state.get("recent_quotes", [])
-    fresh_pool = [idx for idx in pool if idx not in recent]
-    if fresh_pool:
-        pool = fresh_pool
 
-    chosen_idx = random.choice(pool)
-    st.session_state["recent_quotes"] = (recent + [chosen_idx])[-3:]
+    adjusted = []
+    for base_score, idx in candidate_pool:
+        used_count = usage.get(idx, 0)
+        recent_penalty = 10 if idx in recent[-5:] else 0
+        usage_penalty = used_count * 5
+        adjusted_score = base_score - recent_penalty - usage_penalty
+        adjusted.append((adjusted_score, base_score, idx))
+
+    adjusted.sort(key=lambda item: (-item[0], -item[1], item[2]))
+
+    # 조정 점수가 높은 상위 4개 중 하나를 선택해
+    # 맥락 적합성과 다양성을 함께 확보.
+    top_adjusted = adjusted[:4]
+    chosen_idx = random.choice([idx for _, _, idx in top_adjusted])
+
+    usage[chosen_idx] = usage.get(chosen_idx, 0) + 1
+    st.session_state["quote_usage"] = usage
+    st.session_state["recent_quotes"] = (recent + [chosen_idx])[-5:]
 
     return chosen_idx, emotion, context, wish
 
@@ -645,6 +758,14 @@ def natural_reason_clause(reason: str) -> str:
     지나치게 문장을 재작성하지 않고, 자주 나오는 종결형만 최소 변환합니다.
     """
     r = reason.strip().rstrip(".!? ")
+
+    # 명사 서술형: "토요일 밤이야" -> "토요일 밤이기 때문에"
+    if r.endswith("이야"):
+        return r[:-2] + "이기 때문에"
+    if r.endswith("이었어"):
+        return r[:-3] + "이어서"
+    if r.endswith("였어"):
+        return r[:-2] + "여서"
 
     # 성취/성공 맥락은 '-기 때문에'가 자연스러움
     achievement_words = ["성공했어", "성공했다", "해냈어", "해냈다", "완성했어", "완성했다"]
@@ -1014,7 +1135,6 @@ if st.session_state.page == "input":
                 "context": context,
                 "wish_label": wish_label,
             }
-            st.session_state.alternate_used = False
             st.session_state.page = "result"
             st.rerun()
 
@@ -1029,18 +1149,19 @@ else:
 
     st.title("오늘의 문장 🌿")
 
+    result_sentence = (
+        f"{call_name}. "
+        f"{natural_reason_clause(result['reason'])} "
+        f"{emotion_phrase_for_result(result['emotion'], result.get('clarified_emotion', ''))} "
+        f"{comfort} "
+        f"네가 바라는 것이 이루어지기를 바라. "
+        f"그래서 오늘은 {reason_for_quote} 이 문장을 골랐어."
+    )
+
     st.markdown(
         f"""
         <div class="result-box">
-            <strong>{call_name}.</strong><br><br>
-            <strong>{natural_reason_clause(result['reason'])}</strong>
-            <strong>{emotion_phrase_for_result(
-                result["emotion"],
-                result.get("clarified_emotion", "")
-            )}</strong><br><br>
-            {comfort}<br><br>
-            네가 바라는 것이 이루어지기를 바라.<br><br>
-            그래서 오늘은 <strong>{reason_for_quote}</strong> 이 문장을 골랐어.
+            <div class="letter-body">{result_sentence}</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -1049,47 +1170,32 @@ else:
     st.markdown(
         f"""
         <div class="quote-card {card_class}">
-            <div class="quote-title">{result['name']}에게 오늘 건네는 한 문장</div>
-            <div class="quote-text">“{q['text']}”</div>
-            <div class="quote-meta">— {q['author']}</div>
+            <div class="ribbon-knot"></div>
+            <div class="quote-inner">
+                <div class="quote-title">{result['name']}에게 오늘 건네는 한 문장</div>
+                <div class="quote-text">“{q['text']}”</div>
+                <div class="quote-meta">— {q['author']}</div>
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    col1, col2 = st.columns(2)
-    with col1:
-        if not st.session_state.get("alternate_used", False):
-            if st.button("다른 문장 한 번 보기", use_container_width=True):
-                chosen_idx, emotion, context, wish_label = choose_quote(
-                    result.get("analysis_mood", result["mood"]), result["reason"], result["wish"]
-                )
-                st.session_state.result["chosen_idx"] = chosen_idx
-                st.session_state.result["emotion"] = emotion
-                st.session_state.result["context"] = context
-                st.session_state.result["wish_label"] = wish_label
-                st.session_state.alternate_used = True
-                st.rerun()
-        else:
-            st.button("다른 문장 보기 완료", disabled=True, use_container_width=True)
-
-    with col2:
-        if st.button("처음으로 돌아가기", use_container_width=True):
-            st.session_state.page = "input"
-            if "result" in st.session_state:
-                del st.session_state.result
-            st.session_state.alternate_used = False
-            st.session_state.needs_clarification = False
-            for key in [
-                "name_input",
-                "mood_input",
-                "reason_input",
-                "wish_input",
-                "clarified_emotion_input",
-            ]:
-                if key in st.session_state:
-                    del st.session_state[key]
-            st.rerun()
+    if st.button("처음으로 돌아가기", use_container_width=True):
+        st.session_state.page = "input"
+        if "result" in st.session_state:
+            del st.session_state.result
+        st.session_state.needs_clarification = False
+        for key in [
+            "name_input",
+            "mood_input",
+            "reason_input",
+            "wish_input",
+            "clarified_emotion_input",
+        ]:
+            if key in st.session_state:
+                del st.session_state[key]
+        st.rerun()
 
     st.markdown(
         '<div class="small-note">입력한 내용은 별도로 저장하지 않습니다.</div>',
