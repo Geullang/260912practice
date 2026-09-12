@@ -716,6 +716,26 @@ def choose_quote(mood_text: str, reason_text: str, wish_text: str):
 
     return chosen_idx, emotion, context, wish
 
+def normalize_name_input(name: str) -> str:
+    """
+    '선영이야', '써니야', '선영이에요'처럼 자연스럽게 답해도
+    이름 부분만 남기도록 최소한으로 정리합니다.
+    """
+    n = name.strip().rstrip(".!? ")
+    endings = [
+        "이라고 합니다", "라고 합니다",
+        "이라고 해", "라고 해",
+        "이에요", "예요", "입니다",
+        "이야", "야",
+    ]
+    for ending in endings:
+        if n.endswith(ending) and len(n) > len(ending):
+            candidate = n[:-len(ending)].strip()
+            if candidate:
+                return candidate
+    return n
+
+
 def vocative_name(name: str) -> str:
     clean = name.strip()
     if not clean:
@@ -778,10 +798,10 @@ def natural_reason_clause(reason: str) -> str:
         return r[:-3] + "기 때문에"
 
     replacements = [
+        ("배웠어", "배워서"),
+        ("배웠다", "배워서"),
         ("되었어", "되어서"),
         ("됐어", "돼서"),
-        ("았어", "아서"),
-        ("었어", "어서"),
         ("했어", "해서"),
         ("했지", "해서"),
         ("있어", "있어서"),
@@ -806,6 +826,16 @@ def natural_reason_clause(reason: str) -> str:
         ("망쳤어", "망쳐서"),
         ("틀렸어", "틀려서"),
     ]
+    # 흔한 축약형
+    contracted = [
+        ("웠어", "워서"),
+        ("웠다", "워서"),
+        ("됐어", "돼서"),
+    ]
+    for ending, converted in contracted:
+        if r.endswith(ending):
+            return r[:-len(ending)] + converted
+
     for ending, converted in replacements:
         if r.endswith(ending):
             return r[:-len(ending)] + converted
@@ -1071,7 +1101,7 @@ if st.session_state.page == "input":
         st.session_state.needs_clarification = False
 
     with st.form("morning_checkin"):
-        name = st.text_input("1. 이름이 뭐야?", key="name_input")
+        name = st.text_input("1. 이름을 알려줘.", key="name_input")
         mood = st.text_area("2. 지금 기분은 어떠니?", height=90, key="mood_input")
 
         clarified_emotion = ""
@@ -1121,8 +1151,9 @@ if st.session_state.page == "input":
                 mood_for_analysis, reason, wish
             )
 
+            clean_name = normalize_name_input(name)
             st.session_state.result = {
-                "name": name.strip(),
+                "name": clean_name,
                 "mood": mood.strip(),
                 "clarified_emotion": (
                     clarified_emotion.strip()
