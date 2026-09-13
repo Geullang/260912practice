@@ -1040,6 +1040,92 @@ div[data-testid="stButton"]:has(button[kind="secondary"]) {
     }
 }
 
+
+
+/* ===== v63: full-card soft-focus quote cards (keep leaf/wave mood) ===== */
+.quote-card {
+    isolation: isolate !important;
+    border: 1px solid rgba(255,255,255,0.78) !important;
+    box-shadow: 0 14px 34px rgba(74, 112, 132, 0.14) !important;
+}
+
+.quote-card.primary-card,
+.quote-card.secondary-card {
+    background-size: auto, cover, cover !important;
+    background-position: center center, center center, center center !important;
+    background-repeat: no-repeat, no-repeat, no-repeat !important;
+}
+
+.quote-card.primary-card::before,
+.quote-card.secondary-card::before {
+    display: block !important;
+    content: "" !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 1 !important;
+    pointer-events: none !important;
+    background:
+        radial-gradient(circle at 14% 18%, rgba(127, 207, 154, 0.11) 0 10%, transparent 11%),
+        radial-gradient(circle at 86% 82%, rgba(142, 216, 229, 0.12) 0 10%, transparent 11%),
+        radial-gradient(circle at 88% 14%, rgba(255, 255, 255, 0.22) 0 7%, transparent 8%);
+}
+
+.quote-card.primary-card::after,
+.quote-card.secondary-card::after {
+    display: block !important;
+    content: "" !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 2 !important;
+    pointer-events: none !important;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.70) 0%,
+        rgba(241, 250, 248, 0.58) 44%,
+        rgba(233, 244, 248, 0.64) 100%
+    ) !important;
+    -webkit-backdrop-filter: blur(9px) saturate(1.03) !important;
+    backdrop-filter: blur(9px) saturate(1.03) !important;
+}
+
+.quote-inner {
+    position: relative !important;
+    z-index: 3 !important;
+    max-width: 82% !important;
+}
+
+.quote-title,
+.quote-text,
+.quote-meta {
+    position: relative !important;
+    z-index: 3 !important;
+}
+
+.quote-title {
+    margin-bottom: 0.88rem !important;
+}
+
+.quote-text {
+    font-size: 1.38rem !important;
+    line-height: 1.64 !important;
+    letter-spacing: -0.018em !important;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.32) !important;
+}
+
+.quote-meta {
+    margin-top: 0.18rem !important;
+}
+
+@media (max-width: 760px) {
+    .quote-inner {
+        max-width: 88% !important;
+    }
+    .quote-text {
+        font-size: 1.16rem !important;
+        line-height: 1.60 !important;
+    }
+}
+
 </style>
 """, unsafe_allow_html=True)
 
