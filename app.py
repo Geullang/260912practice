@@ -1745,14 +1745,13 @@ def choose_quote(mood_text: str, reason_text: str, wish_text: str):
     ]
     scored.sort(key=lambda item: (-item[0], item[1]))
 
-    # 적합성은 유지하되 후보 폭은 이전보다 넓힘.
-    # 최고점에서 12점 이내, 최대 12개를 후보로 둠.
+    # v61: 맥락 적합도 > 다양성. 최고점과 가까운 후보만 사용.
     best_score = scored[0][0]
     candidate_pool = [
         (score, idx)
         for score, idx in scored
-        if score >= best_score - 12
-    ][:12]
+        if score >= best_score - 7
+    ][:8]
 
     # 같은 세션에서 이미 나온 문장에는 감점을 주어
     # 100개 문장 중 더 다양한 문장이 순환하도록 함.
@@ -1762,8 +1761,8 @@ def choose_quote(mood_text: str, reason_text: str, wish_text: str):
     adjusted = []
     for base_score, idx in candidate_pool:
         used_count = usage.get(idx, 0)
-        recent_penalty = 10 if idx in recent[-5:] else 0
-        usage_penalty = used_count * 5
+        recent_penalty = 12 if idx in recent[-5:] else 0
+        usage_penalty = used_count * 6
         adjusted_score = base_score - recent_penalty - usage_penalty
         adjusted.append((adjusted_score, base_score, idx))
 
@@ -1771,7 +1770,7 @@ def choose_quote(mood_text: str, reason_text: str, wish_text: str):
 
     # 조정 점수가 높은 상위 4개 중 하나를 선택해
     # 맥락 적합성과 다양성을 함께 확보.
-    top_adjusted = adjusted[:4]
+    top_adjusted = adjusted[:3]
     chosen_idx = random.choice([idx for _, _, idx in top_adjusted])
 
     usage[chosen_idx] = usage.get(chosen_idx, 0) + 1
@@ -2191,6 +2190,20 @@ def emotion_phrase_for_result(emotion_label: str, raw_emotion: str = "") -> str:
 
 
 
+def choose_copy_variant(key: str, options: list[str]) -> str:
+    """같은 상황 안에서만 표현을 순환시켜 반복감을 줄입니다."""
+    if not options:
+        return ""
+    usage = st.session_state.get("copy_variant_usage", {})
+    counts = [usage.get(f"{key}:{i}", 0) for i in range(len(options))]
+    min_count = min(counts)
+    pool = [i for i, c in enumerate(counts) if c == min_count]
+    idx = random.choice(pool)
+    usage[f"{key}:{idx}"] = usage.get(f"{key}:{idx}", 0) + 1
+    st.session_state["copy_variant_usage"] = usage
+    return options[idx]
+
+
 def detect_support_situation(reason: str, emotion: str, context: str | None) -> str:
     t = normalize(reason)
 
@@ -2359,6 +2372,71 @@ def build_natural_opening(reason: str, emotion: str, context: str | None) -> str
     emotion_sentence = emotion_phrase_for_result(emotion).rstrip(".!? ")
     t = normalize(reason)
 
+    opening_variants = {
+        "시험성적": [
+            f"시험이나 성적을 생각하니 {emotion_sentence}.",
+            f"결과가 눈앞에 있으니 마음이 자꾸 쓰여 {emotion_sentence}.",
+            f"시험 결과를 떠올릴수록 마음이 흔들려 {emotion_sentence}.",
+        ],
+        "발표면접": [
+            f"사람들 앞에 나서야 하는 일을 앞두고 {emotion_sentence}.",
+            f"준비한 것을 보여 줘야 할 시간이 다가와 {emotion_sentence}.",
+            f"발표나 면접을 생각하니 {emotion_sentence}.",
+        ],
+        "진로선택": [
+            f"앞으로의 선택을 생각하다 보니 {emotion_sentence}.",
+            f"어떤 길을 고를지 생각이 많아져 {emotion_sentence}.",
+            f"진로를 정해야 한다는 생각에 {emotion_sentence}.",
+        ],
+        "기다림": [
+            f"기다리고 있는 일이 있어서 {emotion_sentence}.",
+            f"아직 답이 오지 않은 시간을 보내고 있어서 {emotion_sentence}.",
+            f"결과를 기다리는 시간이 길게 느껴져 {emotion_sentence}.",
+        ],
+        "학습속도비교": [
+            f"배우는 과정에서 다른 사람보다 속도가 느린 것 같아 {emotion_sentence}.",
+            f"다른 사람의 속도가 눈에 들어와 내 속도가 더 느리게 느껴져 {emotion_sentence}.",
+            f"남들과 비교하다 보니 배우는 속도가 뒤처지는 것 같아 {emotion_sentence}.",
+        ],
+        "할일과다": [
+            f"해야 할 일이 한꺼번에 겹쳐서 {emotion_sentence}.",
+            f"할 일이 계속 쌓여 있어 {emotion_sentence}.",
+            f"한꺼번에 처리해야 할 것이 많아 {emotion_sentence}.",
+        ],
+        "평온": [
+            "오늘은 마음이 한결 편안하고 잔잔하구나.",
+            "오늘은 마음이 조용히 가라앉아 편안하구나.",
+            "지금은 서두르지 않아도 될 만큼 마음이 잔잔하구나.",
+        ],
+        "행복": [
+            "지금은 기분이 좋고 마음도 한결 가볍구나.",
+            "오늘은 특별한 이유가 없어도 좋은 마음이 드는구나.",
+            "지금의 좋은 기분이 자연스럽게 이어지고 있구나.",
+        ],
+        "상쾌한시작": [
+            "오늘은 평소보다 일찍 일어나 하루를 여유롭게 시작해서 기분이 좋구나.",
+            "아침을 조금 여유롭게 시작하니 마음도 가볍구나.",
+            "일찍 시작한 오늘이 평소보다 산뜻하게 느껴지는구나.",
+        ],
+        "산책자연": [
+            "밖의 공기와 풍경을 느끼며 마음이 한결 좋아졌구나.",
+            "햇빛과 바람을 느끼는 동안 마음이 조금 가벼워졌구나.",
+            "잠깐 밖을 걷는 시간만으로도 기분이 산뜻해졌구나.",
+        ],
+        "활동후기분좋음": [
+            "몸을 움직이고 나니 기분이 한결 가벼워졌구나.",
+            "운동하고 나니 몸도 마음도 조금 개운해졌구나.",
+            "몸을 움직인 뒤의 상쾌함이 마음까지 이어졌구나.",
+        ],
+        "작은성취": [
+            "미뤄 두었던 일을 하나 해내서 마음이 조금 가벼워졌구나.",
+            "작은 일 하나를 끝낸 것만으로도 마음이 뿌듯하구나.",
+            "미뤄 둔 일을 마치니 마음 한쪽이 시원해졌구나.",
+        ],
+    }
+    if situation in opening_variants:
+        return choose_copy_variant(f"opening:{situation}", opening_variants[situation])
+
     if situation == "놓아줌수용":
         if "후회" in t:
             if emotion == "평온·편안":
@@ -2477,6 +2555,52 @@ def build_natural_opening(reason: str, emotion: str, context: str | None) -> str
 
 def get_natural_support_copy(emotion: str, context: str | None, situation: str, wish: str | None = None) -> str:
     """상황×감정별 자연스러운 위로. 길이는 1~2문장으로 제한한다."""
+    support_variants = {
+        "시험성적": [
+            "시험이나 성적은 결과가 분명해서 마음을 더 조급하게 만들 수 있어. 하지만 한 번의 점수가 네가 배운 것 전체를 말해 주는 건 아니야.",
+            "결과가 중요한 만큼 걱정도 커질 수 있어. 하지만 지금까지 준비해 온 시간까지 한 번의 점수로 작아지는 건 아니야.",
+            "성적은 눈에 보이는 숫자라 마음을 쉽게 흔들어. 그래도 그 숫자가 네 노력의 전부를 설명하지는 못해.",
+        ],
+        "발표면접": [
+            "사람들 앞에 서는 일은 준비를 많이 해도 긴장될 수 있어. 하지만 긴장된다고 해서 준비한 것이 사라지는 건 아니야.",
+            "예상하지 못한 질문이 걱정될 수 있어. 그래도 준비해 온 생각과 경험은 네 안에 남아 있어.",
+            "떨리는 마음이 있어도 괜찮아. 완벽하게 말하는 것보다 네가 준비한 내용을 차분히 꺼내는 게 더 중요해.",
+        ],
+        "기다림": [
+            "기다리는 동안에는 아직 오지 않은 답을 계속 상상하게 될 수 있어. 하지만 기다림 자체가 나쁜 결과를 뜻하는 건 아니야.",
+            "결과를 기다리는 시간에는 마음이 자꾸 앞서 가기 쉬워. 아직 정해지지 않은 일을 미리 결론 내리지 않아도 돼.",
+            "가고 싶은 마음이 큰 만큼 결과가 더 신경 쓰일 수 있어. 지금은 네가 이미 해 온 준비를 믿어도 좋아.",
+            "결과를 바꿀 수 없는 시간에는 걱정만 커지기 쉬워. 지금은 네 몫의 준비를 끝냈다는 사실을 기억해도 괜찮아.",
+        ],
+        "학습속도비교": [
+            "다른 사람의 속도가 눈에 들어오면 내 속도가 더 느리게 느껴질 수 있어. 하지만 배우는 속도가 다르다고 해서 배움의 가치까지 달라지는 건 아니야.",
+            "누군가보다 늦게 이해한다고 해서 덜 배우고 있는 건 아니야. 네가 이해하는 속도로 끝까지 이어 가는 것도 충분히 좋은 배움이야.",
+            "비교를 시작하면 내 부족한 점만 더 크게 보일 수 있어. 지금은 남의 속도보다 어제의 나보다 조금 더 이해했는지를 봐도 좋아.",
+        ],
+        "할일과다": [
+            "해야 할 일이 한꺼번에 겹치면 마음이 먼저 지칠 수 있어. 하지만 모든 일을 한 번에 끝내지 않아도 괜찮아.",
+            "할 일이 많을수록 무엇부터 해야 할지 더 막막해질 수 있어. 지금은 가장 작은 한 가지부터 끝내도 충분해.",
+            "한꺼번에 다 해내려 하면 마음이 더 무거워질 수 있어. 오늘 꼭 해야 하는 것과 미뤄도 되는 것을 나눠 봐도 괜찮아.",
+        ],
+        "평온": [
+            "마음이 잔잔한 순간은 생각보다 귀해. 무엇을 더 채우기보다 지금의 편안함을 그대로 느껴도 좋아.",
+            "특별한 일이 없어도 마음이 편안한 날은 충분히 좋은 날이야. 지금의 잔잔함을 오래 누려도 좋아.",
+            "마음이 조용한 순간에는 굳이 무언가를 더 해내지 않아도 돼. 지금 이 편안함만으로도 충분해.",
+        ],
+        "행복": [
+            "좋은 마음이 드는 순간은 굳이 이유를 더 찾지 않아도 돼. 지금의 기분을 충분히 누려도 좋아.",
+            "기분 좋은 날에는 그 마음을 오래 설명하지 않아도 괜찮아. 오늘의 즐거움을 그대로 누려도 좋아.",
+            "좋은 기분은 그 자체로도 충분한 이유가 돼. 오늘 마음에 남은 밝은 순간을 가볍게 즐겨 봐.",
+        ],
+        "상쾌한시작": [
+            "하루를 조금 여유롭게 시작하면 같은 하루도 다르게 느껴질 수 있어. 지금의 가벼운 흐름을 그대로 이어 가도 좋아.",
+            "아침의 여유가 하루 전체의 속도를 부드럽게 만들어 주기도 해. 오늘은 그 리듬을 천천히 이어 가도 좋아.",
+            "조금 일찍 시작한 덕분에 마음에도 여백이 생겼구나. 그 여유를 서둘러 채우지 않아도 괜찮아.",
+        ],
+    }
+    if situation in support_variants:
+        return choose_copy_variant(f"support:{situation}", support_variants[situation])
+
     situation_copy = {
         "상쾌한시작": (
             "하루를 조금 여유롭게 시작하면 같은 하루도 다르게 느껴질 수 있어. "
@@ -2714,6 +2838,40 @@ def get_natural_support_copy(emotion: str, context: str | None, situation: str, 
 
 
 def get_quote_intro(emotion: str, situation: str) -> str:
+    intro_variants = {
+        "시험성적": [
+            "그래서 오늘은 결과 하나로 너를 다 판단하지 않게 해 줄 문장을 골랐어.",
+            "그래서 오늘은 결과보다 네가 걸어온 과정을 함께 바라보게 해 줄 문장을 골랐어.",
+        ],
+        "발표면접": [
+            "그래서 오늘은 긴장 속에서도 네가 준비한 것을 믿게 해 줄 문장을 골랐어.",
+            "그래서 오늘은 떨리는 마음 속에서도 한 걸음 나아가게 해 줄 문장을 골랐어.",
+        ],
+        "기다림": [
+            "그래서 오늘은 아직 정해지지 않은 시간을 조금 편하게 바라보게 해 줄 문장을 골랐어.",
+            "그래서 오늘은 기다리는 마음을 조금 가볍게 해 줄 문장을 골랐어.",
+            "그래서 오늘은 결과를 미리 단정하지 않게 해 줄 문장을 골랐어.",
+        ],
+        "학습속도비교": [
+            "그래서 오늘은 조급해진 마음을 조금 느슨하게 해 줄 문장을 골랐어.",
+            "그래서 오늘은 다른 사람의 속도에서 잠시 벗어나게 해 줄 문장을 골랐어.",
+        ],
+        "평온": [
+            "그래서 오늘은 지금의 편안한 마음과 잘 어울리는 문장을 골랐어.",
+            "그래서 오늘은 잔잔한 오늘의 마음과 잘 어울리는 문장을 골랐어.",
+        ],
+        "행복": [
+            "그래서 오늘은 지금의 좋은 마음과 잘 어울리는 문장을 골랐어.",
+            "그래서 오늘은 오늘의 밝은 기분과 잘 어울리는 문장을 골랐어.",
+        ],
+        "상쾌한시작": [
+            "그래서 오늘은 가볍게 시작한 오늘과 잘 어울리는 문장을 골랐어.",
+            "그래서 오늘은 산뜻하게 시작한 하루와 잘 어울리는 문장을 골랐어.",
+        ],
+    }
+    if situation in intro_variants:
+        return choose_copy_variant(f"intro:{situation}", intro_variants[situation])
+
     intro_map = {
         "상쾌한시작": "그래서 오늘은 가볍게 시작한 오늘과 잘 어울리는 문장을 골랐어.",
         "산책자연": "그래서 오늘은 지금의 산뜻한 마음과 잘 어울리는 문장을 골랐어.",
@@ -2926,33 +3084,40 @@ def build_support_message(emotion, context, wish):
 
 
 def choose_second_quote(mood: str, reason: str, wish: str, first_idx: int) -> int:
-    """
-    첫 번째 문장과 겹치지 않는 두 번째 문장을 고릅니다.
-    같은 감정·상황·바람 입력을 기준으로 추천하되, 최대한 기존 추천 로직을 그대로 활용합니다.
-    """
-    tried = set()
-    for _ in range(20):
-        idx, _, _, _ = choose_quote(mood, reason, wish)
-        if idx != first_idx:
-            return idx
-        tried.add(idx)
+    """첫 문장과 같은 맥락에 충분히 맞는 후보 안에서만 두 번째 문장을 고릅니다."""
+    context = detect_context(reason)
+    emotion = detect_emotion(mood, reason)
+    wish_label = detect_wish(wish)
 
-    # 드물게 같은 문장만 반복되면, 태그가 겹치는 다른 문장을 우선 탐색
+    all_scores = [(quote_score(q, emotion, context, wish_label), idx) for idx, q in enumerate(QUOTES)]
+    absolute_best = max(score for score, _ in all_scores)
+    scored = [(score, idx) for score, idx in all_scores if idx != first_idx]
+    scored.sort(key=lambda item: (-item[0], item[1]))
+
+    candidate_pool = [(score, idx) for score, idx in scored if score >= absolute_best - 6][:8]
+    if not candidate_pool:
+        candidate_pool = [(score, idx) for score, idx in scored if score >= absolute_best - 9][:8]
+    if not candidate_pool:
+        return scored[0][1] if scored else first_idx
+
+    usage = st.session_state.get("quote_usage", {})
+    recent = st.session_state.get("recent_quotes", [])
     first_tags = set(QUOTES[first_idx].get("tags", []))
-    candidates = []
-    for i, q in enumerate(QUOTES):
-        if i == first_idx:
-            continue
-        overlap = len(first_tags & set(q.get("tags", [])))
-        candidates.append((overlap, i))
+    adjusted = []
+    for base_score, idx in candidate_pool:
+        tags = set(QUOTES[idx].get("tags", []))
+        complement_bonus = min(len(first_tags & tags), 3) * 2
+        recent_penalty = 12 if idx in recent[-5:] else 0
+        usage_penalty = usage.get(idx, 0) * 6
+        adjusted.append((base_score + complement_bonus - recent_penalty - usage_penalty, base_score, idx))
 
-    candidates.sort(reverse=True)
-    if candidates:
-        top_overlap = candidates[0][0]
-        pool = [i for overlap, i in candidates if overlap == top_overlap]
-        return random.choice(pool)
-
-    return first_idx
+    adjusted.sort(key=lambda item: (-item[0], -item[1], item[2]))
+    top = adjusted[:3]
+    chosen_idx = random.choice([idx for _, _, idx in top])
+    usage[chosen_idx] = usage.get(chosen_idx, 0) + 1
+    st.session_state["quote_usage"] = usage
+    st.session_state["recent_quotes"] = (recent + [chosen_idx])[-5:]
+    return chosen_idx
 
 
 def split_sentences_for_letter(text: str):
