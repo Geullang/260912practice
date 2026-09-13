@@ -2213,6 +2213,56 @@ def detect_support_situation(reason: str, emotion: str, context: str | None) -> 
     confusion_words = ["뭘 해야", "어떻게 해야", "모르겠", "생각이 복잡", "헷갈", "정리가 안", "혼란"]
     boredom_words = ["지루", "매일 똑같", "똑같은 하루", "재미없", "권태", "아무것도 하기 싫"]
     loss_words = ["헤어", "잃었", "떠났", "이별", "사라졌", "상실", "죽", "그리워"]
+    release_words = [
+        "집착하지 않", "붙잡지 않", "오래 붙잡지 않", "놓아주", "놓기로",
+        "흘려보내", "털어내", "내려놓", "신경 쓰지 않기로", "마음에 두지 않기로",
+        "받아들이", "수용", "매달리지 않", "넘기기로", "잊기로"
+    ]
+    release_targets = ["후회", "실수", "잘못", "걱정", "미련", "아쉬", "지나간 일", "지난 일"]
+    # 긍정 감정도 이유에 따라 세분화한다.
+    positive_emotions = {
+        "행복·즐거움", "평온·편안", "감사·감동", "기대·설렘", "만족·자신감"
+    }
+    morning_words = [
+        "일찍 일어", "아침 일찍", "늦잠 안", "일찍 눈", "일찍 기상", "아침을 여유롭게"
+    ]
+    walk_nature_words = [
+        "산책", "햇빛", "햇살", "날씨가 좋", "날씨 좋", "바람이 좋", "공원",
+        "꽃을 봤", "하늘이 예", "풍경이 좋", "밖에 나갔"
+    ]
+    food_words = [
+        "맛있는", "맛있", "커피", "차 마셨", "디저트", "좋아하는 음식", "먹고 싶던"
+    ]
+    music_hobby_words = [
+        "음악", "노래", "영화", "드라마", "책 읽", "독서", "취미", "그림", "게임",
+        "사진", "만들었", "만드는 게 재밌"
+    ]
+    exercise_words = [
+        "운동", "뛰고", "달리", "헬스", "요가", "수영", "걷고 왔", "몸을 움직"
+    ]
+    tidy_words = [
+        "청소", "정리했", "방 정리", "책상 정리", "미뤄둔 걸 했", "할 일을 끝냈"
+    ]
+
+
+    # 부정적인 단어가 있어도, 문장의 핵심이 '놓아주기/수용하기'라면
+    # 후회·죄책감 상황으로 오인하지 않는다.
+    if has_any(release_words) and (has_any(release_targets) or emotion == "평온·편안"):
+        return "놓아줌수용"
+
+    if emotion in positive_emotions:
+        if has_any(morning_words):
+            return "상쾌한시작"
+        if has_any(walk_nature_words):
+            return "산책자연"
+        if has_any(food_words):
+            return "작은즐거움음식"
+        if has_any(exercise_words):
+            return "활동후기분좋음"
+        if has_any(music_hobby_words):
+            return "취미즐거움"
+        if has_any(tidy_words):
+            return "작은성취"
 
     if has_any(learning_words) and has_any(compare_words):
         return "학습속도비교"
@@ -2309,6 +2359,33 @@ def build_natural_opening(reason: str, emotion: str, context: str | None) -> str
     emotion_sentence = emotion_phrase_for_result(emotion).rstrip(".!? ")
     t = normalize(reason)
 
+    if situation == "놓아줌수용":
+        if "후회" in t:
+            if emotion == "평온·편안":
+                return "후회할 일이 생겨도 오래 붙잡지 않기로 해서 마음이 한결 편안하구나."
+            return f"후회할 일이 생겨도 오래 붙잡지 않기로 한 마음이 있구나. 지금은 {emotion_sentence}."
+        if emotion == "평온·편안":
+            return "마음에 남는 일이 있어도 오래 붙잡지 않기로 해서 마음이 한결 편안하구나."
+        return emotion_sentence + "."
+
+    if situation == "상쾌한시작":
+        return "오늘은 평소보다 일찍 일어나 하루를 여유롭게 시작해서 기분이 좋구나."
+
+    if situation == "산책자연":
+        return "밖의 공기와 풍경을 느끼며 마음이 한결 좋아졌구나."
+
+    if situation == "작은즐거움음식":
+        return "좋아하는 것을 맛보며 기분 좋은 시간을 보냈구나."
+
+    if situation == "활동후기분좋음":
+        return "몸을 움직이고 나니 기분이 한결 가벼워졌구나."
+
+    if situation == "취미즐거움":
+        return "좋아하는 일을 하며 즐거운 시간을 보냈구나."
+
+    if situation == "작은성취":
+        return "미뤄 두었던 일을 하나 해내서 마음이 조금 가벼워졌구나."
+
     if situation == "학습속도비교":
         if "코딩" in t:
             return f"너는 오늘 코딩을 배우면서 남들보다 배우는 속도가 느린 것 같아 {emotion_sentence}."
@@ -2398,9 +2475,38 @@ def build_natural_opening(reason: str, emotion: str, context: str | None) -> str
     return emotion_sentence + "."
 
 
-def get_natural_support_copy(emotion: str, context: str | None, situation: str) -> str:
+def get_natural_support_copy(emotion: str, context: str | None, situation: str, wish: str | None = None) -> str:
     """상황×감정별 자연스러운 위로. 길이는 1~2문장으로 제한한다."""
     situation_copy = {
+        "상쾌한시작": (
+            "하루를 조금 여유롭게 시작하면 같은 하루도 다르게 느껴질 수 있어. "
+            "지금의 가벼운 흐름을 그대로 이어 가도 좋아."
+        ),
+        "산책자연": (
+            "잠깐의 햇빛이나 바람이 생각보다 마음을 크게 바꿔 놓기도 해. "
+            "오늘 만난 좋은 감각을 오래 기억해 두어도 좋아."
+        ),
+        "작은즐거움음식": (
+            "작은 즐거움 하나가 하루 전체를 부드럽게 만들어 주기도 해. "
+            "별것 아닌 것처럼 보여도 충분히 소중한 기분이야."
+        ),
+        "활동후기분좋음": (
+            "몸을 움직인 뒤의 개운함은 마음까지 가볍게 해 줄 때가 있어. "
+            "지금의 상쾌한 기분을 충분히 누려도 좋아."
+        ),
+        "취미즐거움": (
+            "좋아하는 일에 마음을 쓰는 시간은 하루에 작은 여백을 만들어 줘. "
+            "즐거웠던 마음을 굳이 분석하지 않고 그대로 간직해도 좋아."
+        ),
+        "작은성취": (
+            "작은 일 하나를 해낸 것도 하루의 흐름을 바꾸는 힘이 있어. "
+            "그 가벼워진 마음을 충분히 느껴도 좋아."
+        ),
+        "놓아줌수용": (
+            "지나간 일을 놓아주는 선택은 마음의 자리를 조금 넓혀 줄 수 있어. "
+            + ("오늘은 해야 할 일을 마치고 편히 쉬어도 좋겠다." if wish == "휴식"
+               else "지금의 가벼워진 마음을 그대로 두어도 좋아.")
+        ),
         "학습속도비교": (
             "다른 사람의 속도가 눈에 들어오면 내 속도가 더 느리게 느껴질 수 있어. "
             "하지만 배우는 속도가 다르다고 해서 배움의 가치까지 달라지는 건 아니야."
@@ -2609,6 +2715,13 @@ def get_natural_support_copy(emotion: str, context: str | None, situation: str) 
 
 def get_quote_intro(emotion: str, situation: str) -> str:
     intro_map = {
+        "상쾌한시작": "그래서 오늘은 가볍게 시작한 오늘과 잘 어울리는 문장을 골랐어.",
+        "산책자연": "그래서 오늘은 지금의 산뜻한 마음과 잘 어울리는 문장을 골랐어.",
+        "작은즐거움음식": "그래서 오늘은 일상의 작은 기쁨과 잘 어울리는 문장을 골랐어.",
+        "활동후기분좋음": "그래서 오늘은 지금의 상쾌한 마음과 잘 어울리는 문장을 골랐어.",
+        "취미즐거움": "그래서 오늘은 좋아하는 일에서 얻은 즐거움과 잘 어울리는 문장을 골랐어.",
+        "작은성취": "그래서 오늘은 작은 성취의 기쁨과 잘 어울리는 문장을 골랐어.",
+        "놓아줌수용": "그래서 오늘은 지나간 일을 가볍게 놓아주는 마음과 잘 어울리는 문장을 골랐어.",
         "평온": "그래서 오늘은 지금의 편안한 마음과 잘 어울리는 문장을 골랐어.",
         "혼자휴식": "그래서 오늘은 지금의 편안한 마음과 잘 어울리는 문장을 골랐어.",
         "안도": "그래서 오늘은 지금의 편안한 마음과 잘 어울리는 문장을 골랐어.",
@@ -2669,7 +2782,12 @@ def build_result_letter_lines(result: dict) -> list[str]:
 
     situation = detect_support_situation(reason, emotion, context)
     opening = build_natural_opening(reason, emotion, context)
-    support = get_natural_support_copy(emotion, context, situation)
+    support = get_natural_support_copy(
+        emotion,
+        context,
+        situation,
+        result.get("wish_label"),
+    )
     quote_intro = get_quote_intro(emotion, situation)
 
     return [
